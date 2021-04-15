@@ -1,7 +1,9 @@
 program patito;
 var x: int;
 
-void function form(y:int) {
+void function form(y:int) 
+var z: float;
+{
     x = 5;
 }
 

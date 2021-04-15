@@ -1,144 +1,64 @@
 # Bruno Mendez A01194018
 # Esteban Torres A01193925
 
-import ply.lex as lex
 import ply.yacc as yacc
 import sys
+import lexer
+from datastructures import *
 
-# Lista de nombres de tokens.
-tokens = [
-    'ID',
-    'SEMICOLON',
-    'COLON',
-    'COMA',
-    'LBRACE',
-    'RBRACE',
-    'LBRACKET',
-    'RBRACKET',
-    'EQUAL',
-    'PLUS',
-    'MINUS',
-    'MULTIPLY',
-    'DIVIDE',
-    'LPAREN',
-    'RPAREN',
-    'CST_STRING',
-    'CST_CHAR',
-    'CST_INT',
-    'CST_FLOAT',
-    'LT',
-    'GT',
-    'NE'
-]
+tokens = lexer.tokens
 
-# Lista de palabras reservadas.
-reserved = {
-    'program'   : 'PROGRAM',
-    'var'       : 'VAR',
-    'function'  : 'FUNCTION',
-    'int'       : 'INT',
-    'float'     : 'FLOAT',
-    'char'      : 'CHAR',
-    'void'      : 'VOID',
-    'print'     : 'PRINT',
-    'input'     : 'INPUT',
-    'if'        : 'IF',
-    'else'      : 'ELSE',
-    'main'      : 'MAIN',
-    'return'    : 'RETURN',
-    'while'     : 'WHILE',
-    'for'       : 'FOR',
-}
-tokens += reserved.values()
-
-# Regexpr para tokens simples
-t_SEMICOLON     = r';'
-t_COLON         = r':'
-t_COMA          = r','
-t_LBRACE        = r'\{'
-t_RBRACE        = r'\}'
-t_LBRACKET      = r'\['
-t_RBRACKET      = r'\]'
-t_EQUAL         = r'='
-t_PLUS          = r'\+'
-t_MINUS         = r'-'
-t_MULTIPLY      = r'\*'
-t_DIVIDE        = r'/'
-t_LPAREN        = r'\('
-t_RPAREN        = r'\)'
-t_CST_STRING    = r'("(\\"|[^"])*")'
-t_CST_CHAR      = r'[a-zA-Z]'
-t_CST_INT       = r'[0-9]+'
-t_CST_FLOAT     = r'[0-9]+\.[0-9]+'
-t_LT            = r'<'
-t_GT            = r'>'
-
-
-
-# Regexpr para tokens que requieren más codigo
-def t_ID(token):
-    r'[a-zA-Z][a-zA-Z0-9_]*'
-    if token.value in reserved:
-        token.type = reserved[token.value]
-    return token
-
-# Regla para tomar en cuenta cambios de linea
-def t_newline(t):
-    r'\n+'
-    t.lexer.lineno += len(t.value)
-
-# Caracteres a ignorar
-t_ignore  = ' \t'
-t_ignore_COMMENT = r'%%.*'
-
-
-# Manejo de errores
-def t_error(t):
-    print("Illegal character '%s'" % t.value[0])
-    t.lexer.skip(1)
-
-# Constructor del lexer
-lexer = lex.lex()
+currentScope = "global"
+functionDirectory = {}
+variableTable = {}
+varIds = Queue()
+currentType = ""
 
 # Definicion de reglas de la gramatica
 def p_program(p):
-    'program : PROGRAM ID SEMICOLON createGlobalTables vars functions MAIN LPAREN RPAREN block'
+    'program : PROGRAM ID createGlobalTables SEMICOLON vars functions MAIN LPAREN RPAREN block'
+    print(variableTable)
+    print(functionDirectory)
 
 def p_createGlobalTables(p):
     'createGlobalTables : '
-    global currentScope
-    global functionDirectory
-    global variableTables
     currentScope = "global"
-    functionDirectory = {"global": {"type": "void"}}
-    variableTables = {}
+    functionDirectory[currentScope] = "void"
+    variableTable[currentScope] = {}
 
 def p_vars(p):
     '''vars : VAR varsPrime 
-            | empty'''
+            | '''
 
 def p_varsPrime(p):
-    '''varsPrime : listIds COLON type addVarsToTable SEMICOLON varsPrime 
-                | empty'''
+    '''varsPrime : listIds COLON type addVars SEMICOLON varsPrime 
+                | '''
 
-def p_addVarsToTable(p):
-    'ad
+def p_addVars(p):
+    'addVars :'
+    while not varIds.empty(): 
+        variableTable[currentScope][varIds.dequeue()] = currentType
 
 def p_functions(p):
     '''functions : function functions
-                | empty'''
+                | '''
     
 def p_listIds(p):
     '''listIds : ids listIdsPrime'''
 
 def p_listIdsPrime(p):
     '''listIdsPrime : COMA ids listIdsPrime 
-                    | empty'''
+                    | '''
 
 def p_ids(p):
-    '''ids : ID 
-            | ID LBRACKET CST_INT RBRACKET 
-            | ID LBRACKET CST_INT RBRACKET LBRACKET CST_INT RBRACKET'''
+    '''ids : ID addId
+            | ID addId LBRACKET CST_INT RBRACKET 
+            | ID addId LBRACKET CST_INT RBRACKET LBRACKET CST_INT RBRACKET'''
+
+def p_addId(p):
+    'addId :'
+    varIds.enqueue(p[-1])
+    
 
 def p_ids2(p):
     '''ids2 : ID 
@@ -149,31 +69,42 @@ def p_type(p):
     '''type : INT
             | FLOAT
             | CHAR'''
+    global currentType
+    currentType = p[1]
 
 def p_returnType(p):
     '''returnType : type
                     | VOID'''
+    if(p[1] == 'void'):
+        global currentType
+        currentType = p[1]
 
 def p_function(p):
-    'function : returnType FUNCTION ID LPAREN params RPAREN vars block'
+    'function : returnType FUNCTION ID addFunction LPAREN params RPAREN vars block'
+
+def p_addFunction(p):
+    'addFunction :'
+    functionDirectory[p[-1]] = currentType
+    global currentScope
+    currentScope = p[-1]
+    variableTable[currentScope] = {}
 
 def p_params(p):
-    'params : ids COLON type paramsPrime'
-
+    'params : ids COLON type addVars paramsPrime'
+    
 def p_paramsPrime(p):
     '''paramsPrime : params COMA 
-                | empty'''
+                | '''
 
 def p_block(p):
     '''block : LBRACE statutes RBRACE'''
 
 def p_statutes(p):
     '''statutes : statute statutes 
-                | empty'''
+                | '''
 
 def p_statute(p):
     '''statute : assignment
-                | conditional
                 | write
                 | callVoidF
                 | return
@@ -194,14 +125,14 @@ def p_writePrime(p):
 
 def p_writePrimePrime(p):
     '''writePrimePrime : COMA writePrime
-                        | empty'''
+                        | '''
 
 def p_callVoidF(p):
     'callVoidF : ID LPAREN callVoidFPrime RPAREN SEMICOLON'
 
 def p_callVoidFPrime(p):
     '''callVoidFPrime : varCst
-                    | empty'''
+                    | '''
 
 def p_return(p):
     'return : RETURN LPAREN exp RPAREN SEMICOLON'
@@ -214,7 +145,7 @@ def p_readPrime(p):
 
 def p_readPrimePrime(p):
     '''readPrimePrime : COMA readPrime
-                    | empty'''
+                    | '''
 
 def p_repetition(p):
     '''repetition : conditional
@@ -225,7 +156,7 @@ def p_decision(p):
 
 def p_decisionPrime(p):
     '''decisionPrime : ELSE block 
-                    | empty'''
+                    | '''
 
 def p_conditional(p):
     'conditional : WHILE LPAREN expression RPAREN block'
@@ -259,12 +190,7 @@ def p_varCst(p):
     '''varCst : ID
             | CST_FLOAT 
             | CST_INT
-            | CST_CHAR
-            | CST_STRING'''
-
-def p_empty(p):
-    'empty :'
-    pass
+            | CST_CHAR'''
 
 # Manejo de errores
 def p_error(p):
