@@ -1,0 +1,39 @@
+program test_PyCoffe;
+var
+    i,j,p,age: int;
+    x: float;
+    name[30]: char;
+
+int function fact(j: int)
+var i: int;
+{
+    i = j + (p - j*2+j);
+    if(j==1) {
+        return(j);
+    }
+    else {
+        return(j * fact(j-1));
+    }
+}
+
+void function pelos(y:int)
+var x: int;
+{
+    input(age);
+    x = y;
+    while (x < 10) {
+        print(age - x);
+        x = x + 1;
+    }
+}
+
+main() {
+    input(p);
+    j = p*2;
+    i = fact(p);
+    input(name);
+    pelos(p);
+    for(i=1: 10) {
+        print("HelloWorld", name, fact(age));   
+    }
+}

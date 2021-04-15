@@ -81,12 +81,15 @@ def p_returnType(p):
 
 def p_function(p):
     'function : returnType FUNCTION ID addFunction LPAREN params RPAREN vars block'
+    global currentScope
+    del variableTable[currentScope]
+    currentScope = "global"
 
 def p_addFunction(p):
     'addFunction :'
-    functionDirectory[p[-1]] = currentType
     global currentScope
     currentScope = p[-1]
+    functionDirectory[currentScope] = currentType
     variableTable[currentScope] = {}
 
 def p_params(p):
@@ -128,11 +131,15 @@ def p_writePrimePrime(p):
                         | '''
 
 def p_callVoidF(p):
-    'callVoidF : ID LPAREN callVoidFPrime RPAREN SEMICOLON'
+    'callVoidF : ID LPAREN expressions RPAREN SEMICOLON'
 
-def p_callVoidFPrime(p):
-    '''callVoidFPrime : varCst
-                    | '''
+def p_expressions(p):
+    '''expressions : expression expressionsPrime 
+                |'''
+
+def p_expressionsPrime(p):
+    '''expressionsPrime : COMA expression expressionsPrime 
+                        |'''
 
 def p_return(p):
     'return : RETURN LPAREN exp RPAREN SEMICOLON'
@@ -152,7 +159,7 @@ def p_repetition(p):
                     | nonConditional'''
 
 def p_decision(p):
-    'decision : IF LPAREN exp RPAREN block decisionPrime'
+    'decision : IF LPAREN expression RPAREN block decisionPrime'
 
 def p_decisionPrime(p):
     '''decisionPrime : ELSE block 
@@ -168,6 +175,9 @@ def p_expression(p):
     '''expression : exp GT exp
                 | exp LT exp
                 | exp NE exp
+                | exp AND exp
+                | exp OR exp
+                | exp EQEQ exp
                 | exp'''
 
 def p_exp(p):
@@ -188,9 +198,13 @@ def p_factor(p):
 
 def p_varCst(p):
     '''varCst : ID
+            | callFunction
             | CST_FLOAT 
             | CST_INT
             | CST_CHAR'''
+
+def p_callFunction(p):
+    '''callFunction : ID LPAREN expressions RPAREN'''
 
 # Manejo de errores
 def p_error(p):

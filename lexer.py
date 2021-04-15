@@ -23,7 +23,8 @@ tokens = [
     'CST_FLOAT',
     'LT',
     'GT',
-    'NE'
+    'NE',
+    'EQEQ'
 ]
 
 # Lista de palabras reservadas.
@@ -43,6 +44,8 @@ reserved = {
     'return'    : 'RETURN',
     'while'     : 'WHILE',
     'for'       : 'FOR',
+    'and'       : 'AND',
+    'or'        : 'OR'
 }
 tokens += reserved.values()
 
@@ -67,6 +70,8 @@ t_CST_INT       = r'[0-9]+'
 t_CST_FLOAT     = r'[0-9]+\.[0-9]+'
 t_LT            = r'<'
 t_GT            = r'>'
+t_NE            = r'<>'
+t_EQEQ          = r'=='
 
 
 
