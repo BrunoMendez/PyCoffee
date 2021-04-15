@@ -102,28 +102,30 @@ lexer = lex.lex()
 
 # Definicion de reglas de la gramatica
 def p_program(p):
-    '''program : PROGRAM ID SEMICOLON vars functions MAIN LPAREN RPAREN block
-                | PROGRAM ID SEMICOLON MAIN LPAREN RPAREN block
-                | PROGRAM ID SEMICOLON vars MAIN LPAREN RPAREN block
-                | PROGRAM ID SEMICOLON functions MAIN LPAREN RPAREN block'''
+    'program : PROGRAM ID SEMICOLON createGlobalTables vars functions MAIN LPAREN RPAREN block'
+
+def p_createGlobalTables(p):
+    'createGlobalTables : '
+    
+    #global currentScope = "global"
+    
+    #global functionDirectory = {currentScope: {"type": "void"} }
+    #global variableTables = {}
 
 def p_vars(p):
-    'vars : VAR varsPrime'
+    '''vars : VAR varsPrime 
+            | empty'''
 
 def p_varsPrime(p):
-    'varsPrime : listIds COLON type SEMICOLON varsPrimePrime'
+    '''varsPrime : listIds COLON type SEMICOLON addVarsToTable varsPrime 
+                | empty'''
 
-def p_varsPrimePrime(p):
-    '''varsPrimePrime : varsPrime 
-                        | empty'''
+def p_addVarsToTable(p):
+    'addVarsToTable : '
 
 def p_functions(p):
-    '''functions : function 
-                    | functionsPrime'''
-
-def p_functionsPrime(p):
-    '''functionsPrime : functions 
-                        | empty'''
+    '''functions : function functions
+                | empty'''
     
 def p_listIds(p):
     '''listIds : ids listIdsPrime'''
@@ -275,10 +277,10 @@ def p_error(p):
 parser = yacc.yacc()
 
 # pasar archivo de entrada
-# filename = sys.argv[-1]
-# f = open(filename, "r")
+filename = sys.argv[-1]
+f = open(filename, "r")
 
 # parsear archivo
-# result = parser.parse(f.read())
+result = parser.parse(f.read())
 
 # print(result)

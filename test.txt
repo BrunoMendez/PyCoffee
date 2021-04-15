@@ -1,0 +1,9 @@
+program patito;
+var x: int;
+
+void function f(y:int) {
+    
+}
+
+main() {
+}
