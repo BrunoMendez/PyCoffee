@@ -1,9 +1,11 @@
 program patito;
 var x: int;
 
-void function f(y:int) {
-    
+void function form(y:int) {
+    x = 5;
 }
 
 main() {
+    x = 5;
+    form(x);
 }

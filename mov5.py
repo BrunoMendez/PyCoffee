@@ -106,22 +106,23 @@ def p_program(p):
 
 def p_createGlobalTables(p):
     'createGlobalTables : '
-    
-    #global currentScope = "global"
-    
-    #global functionDirectory = {currentScope: {"type": "void"} }
-    #global variableTables = {}
+    global currentScope
+    global functionDirectory
+    global variableTables
+    currentScope = "global"
+    functionDirectory = {"global": {"type": "void"}}
+    variableTables = {}
 
 def p_vars(p):
     '''vars : VAR varsPrime 
             | empty'''
 
 def p_varsPrime(p):
-    '''varsPrime : listIds COLON type SEMICOLON addVarsToTable varsPrime 
+    '''varsPrime : listIds COLON type addVarsToTable SEMICOLON varsPrime 
                 | empty'''
 
 def p_addVarsToTable(p):
-    'addVarsToTable : '
+    'ad
 
 def p_functions(p):
     '''functions : function functions
@@ -167,12 +168,8 @@ def p_block(p):
     '''block : LBRACE statutes RBRACE'''
 
 def p_statutes(p):
-    '''statutes : statute 
-                | statutesPrime'''
-
-def p_statutesPrime(p):
-    '''statutesPrime : statutes
-                    | empty'''
+    '''statutes : statute statutes 
+                | empty'''
 
 def p_statute(p):
     '''statute : assignment
@@ -200,7 +197,7 @@ def p_writePrimePrime(p):
                         | empty'''
 
 def p_callVoidF(p):
-    '''callVoidF : ID LPAREN callVoidFPrime RPAREN SEMICOLON'''
+    'callVoidF : ID LPAREN callVoidFPrime RPAREN SEMICOLON'
 
 def p_callVoidFPrime(p):
     '''callVoidFPrime : varCst
