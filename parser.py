@@ -14,6 +14,10 @@ variableTable = {}
 varIds = Queue()
 currentType = ""
 
+precedence = (
+    ('right', 'ID', 'LPAREN'),
+)
+
 # Definicion de reglas de la gramatica
 def p_program(p):
     'program : PROGRAM ID createGlobalTables SEMICOLON vars functions MAIN LPAREN RPAREN block'
@@ -62,8 +66,11 @@ def p_addId(p):
 
 def p_ids2(p):
     '''ids2 : ID 
-            | ID LBRACKET exp RBRACKET 
-            | ID LBRACKET exp RBRACKET LBRACKET exp RBRACKET'''
+            | ID arrPos'''
+
+def p_arrPos(p):
+    '''arrPos : LBRACKET exp RBRACKET 
+                | LBRACKET exp RBRACKET LBRACKET exp RBRACKET'''
 
 def p_type(p):
     '''type : INT
@@ -131,7 +138,7 @@ def p_writePrimePrime(p):
                         | '''
 
 def p_callVoidF(p):
-    'callVoidF : ID LPAREN expressions RPAREN SEMICOLON'
+    'callVoidF : callFunction SEMICOLON'
 
 def p_expressions(p):
     '''expressions : expression expressionsPrime 
@@ -142,7 +149,7 @@ def p_expressionsPrime(p):
                         |'''
 
 def p_return(p):
-    'return : RETURN LPAREN exp RPAREN SEMICOLON'
+    'return : RETURN LPAREN expression RPAREN SEMICOLON'
 
 def p_read(p):
     'read : INPUT LPAREN readPrime RPAREN SEMICOLON'
@@ -192,13 +199,12 @@ def p_term(p):
 
 def p_factor(p):
     '''factor : LPAREN expression RPAREN
-            | PLUS varCst
-            | MINUS varCst
-            | varCst'''
+                | varCst'''
 
 def p_varCst(p):
     '''varCst : ID
             | callFunction
+            | ID arrPos
             | CST_FLOAT 
             | CST_INT
             | CST_CHAR'''
