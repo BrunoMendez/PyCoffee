@@ -181,12 +181,17 @@ def p_nonConditional(p):
     'nonConditional : FOR LPAREN ids2 EQUAL exp COLON exp RPAREN block'
 
 def p_expression(p):
-    '''expression : exp GT exp
+    '''expression : miniExpression AND miniExpression
+                    | miniExpression OR miniExpression
+                    | miniExpression'''
+
+def p_miniExpression(p):
+    '''miniExpression : exp GT exp
                 | exp LT exp
                 | exp NE exp
-                | exp AND exp
-                | exp OR exp
                 | exp EQEQ exp
+                | exp LTEQ exp
+                | exp GTEQ exp
                 | exp'''
 
 def p_exp(p):

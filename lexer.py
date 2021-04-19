@@ -24,7 +24,9 @@ tokens = [
     'LT',
     'GT',
     'NE',
-    'EQEQ'
+    'EQEQ',
+    'LTEQ',
+    'GTEQ'
 ]
 
 # Lista de palabras reservadas.
@@ -72,8 +74,8 @@ t_LT            = r'<'
 t_GT            = r'>'
 t_NE            = r'<>'
 t_EQEQ          = r'=='
-
-
+t_LTEQ          = r'<='
+t_GTEQ          = r'>='
 
 # Regexpr para tokens que requieren más codigo
 def t_ID(token):
