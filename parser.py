@@ -16,8 +16,8 @@ currentType = ""
 
 # Toma precedencia ( sobre ID para no reducir ID cuando llamamos una funcion.
 precedence = (
-    ('left', 'ID'),
-    ('left', 'LPAREN'),
+    ('nonassoc', 'ID'),
+    ('nonassoc', 'LPAREN'),
 )
 
 # Definicion de reglas de la gramatica
