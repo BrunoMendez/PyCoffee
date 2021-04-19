@@ -14,8 +14,10 @@ variableTable = {}
 varIds = Queue()
 currentType = ""
 
+# Toma precedencia ( sobre ID para no reducir ID cuando llamamos una funcion.
 precedence = (
-    ('right', 'ID', 'LPAREN'),
+    ('left', 'ID'),
+    ('left', 'LPAREN'),
 )
 
 # Definicion de reglas de la gramatica
