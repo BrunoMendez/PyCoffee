@@ -14,6 +14,11 @@ variableTable = {}
 varIds = Queue()
 currentType = ""
 
+operatorStack = Stack()
+operandStack = Stack()
+typeStack = Stack()
+avail = Queue()
+
 # Toma precedencia ( sobre ID para no reducir ID cuando llamamos una funcion.
 precedence = (
     ('nonassoc', 'ID'),
@@ -181,32 +186,37 @@ def p_nonConditional(p):
     'nonConditional : FOR LPAREN ids2 EQUAL exp COLON exp RPAREN block'
 
 def p_expression(p):
-    '''expression : miniExpression AND miniExpression
-                    | miniExpression OR miniExpression
+    '''expression : miniExpression AND addOperator miniExpression
+                    | miniExpression OR addOperator miniExpression
+                    | NOT addOperator LPAREN miniExpression RPAREN
                     | miniExpression'''
 
 def p_miniExpression(p):
-    '''miniExpression : exp GT exp
-                | exp LT exp
-                | exp NE exp
-                | exp EQEQ exp
-                | exp LTEQ exp
-                | exp GTEQ exp
+    '''miniExpression : exp GT addOperator exp
+                | exp LT addOperator exp
+                | exp NE addOperator exp
+                | exp EQEQ addOperator exp
+                | exp LTEQ addOperator exp
+                | exp GTEQ addOperator exp
                 | exp'''
 
 def p_exp(p):
     '''exp : term
-            | term PLUS exp
-            | term MINUS exp'''
+            | term PLUS addOperator exp
+            | term MINUS addOperator exp'''
 
 def p_term(p):
     '''term : factor 
-            | factor MULTIPLY term 
-            | factor DIVIDE term'''
+            | factor MULTIPLY addOperator term 
+            | factor DIVIDE addOperator term'''
 
 def p_factor(p):
-    '''factor : LPAREN expression RPAREN
+    '''factor : LPAREN addOperator expression RPAREN
                 | varCst'''
+
+def p_addOperator(p):
+    'addOperator :'
+    operatorStack.push(p[-1])
 
 def p_varCst(p):
     '''varCst : ID
@@ -215,6 +225,7 @@ def p_varCst(p):
             | CST_FLOAT 
             | CST_INT
             | CST_CHAR'''
+    operandStack.push(p[-1])
 
 def p_callFunction(p):
     '''callFunction : ID LPAREN expressions RPAREN'''

@@ -7,7 +7,6 @@ from collections import deque
 class Stack:
 
     def __init__(self):
-        print("working")
         self.stack = deque()
 
     def pop(self):
@@ -49,3 +48,55 @@ class Queue:
     def empty(self):
         if len(self.queue) == 0: return True; return False
 
+semanticCube = {}
+
+types = ["error", "int", "float", "char"]
+
+operator = ["+", "-", "*", "/", ">", "<", ">=", "<=", "==", "<>", "and", "or", "not", "="]
+
+for i in types: # Left operand
+    for j in types: # Right operand
+        for k in operator: # Operators
+            if (i == "error" or j == "error"):
+                semanticCube[(i, j, k)] = "error"
+            elif (i == "int" and j == "int"):
+                semanticCube[(i, j, k)] = "int"
+            elif (i == "float" and j == "float"):
+                if (k in ["+", "-", "*", "/", "="]):
+                    semanticCube[(i, j, k)] = "float"
+                elif (k in ["and", "or"]):
+                    semanticCube[(i, j, k)] = "error"
+                else:
+                    semanticCube[(i, j, k)] = "int"
+            elif (i == "char" and j == "char"):
+                if (k in ["<>", "=="]):
+                    semanticCube[(i, j, k)] = "int"
+                elif (k == "="):
+                    semanticCube[(i, j, k)] = "char"
+                else:
+                    semanticCube[(i, j, k)] = "error"
+            elif ((i == "int" and j == "float") or (i == "float" and j == "int")):
+                if (k in ["+", "-", "*", "/"]):
+                    semanticCube[(i, j, k)] = "float"
+                elif (k in ["and", "or", "="]):
+                    semanticCube[(i, j, k)] = "error"
+                else:
+                    semanticCube[(i, j, k)] = "int"
+            elif ((i == "int" and j == "char") or (i == "char" and j == "int")):
+                semanticCube[(i, j, k)] = "error"
+            elif ((i == "float" and j == "char") or (i == "char" and j == "float")):
+                semanticCube[(i, j, k)] = "error"
+            else:
+                semanticCube[(i, j, k)] = "error"
+
+class Quadruple():
+    def __init__(self, operator, leftOperand, rightOperand, result):
+        self.operator = operator
+        self.leftOperand = leftOperand
+        self.rightOperand = rightOperand
+        self.result = result
+
+# class ExpressionEvaluator():
+
+#     def __init__(self):
+#         pass
