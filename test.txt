@@ -2,5 +2,5 @@ program patito;
 var x: int;
 
 main() {
-    x = 1+2*5;
+    x = not(1 or 0 and 0);
 }

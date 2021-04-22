@@ -58,8 +58,7 @@ semanticCube = {}
 types = ["error", "int", "float", "char"]
 
 operator = [
-    "+", "-", "*", "/", ">", "<", ">=", "<=", "==", "<>", "and", "or", "not",
-    "="
+    "+", "-", "*", "/", ">", "<", ">=", "<=", "==", "<>", "and", "or", "="
 ]
 
 for i in types:  # Left operand

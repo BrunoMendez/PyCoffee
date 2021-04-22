@@ -176,6 +176,10 @@ def p_callVoidF(p):
     'callVoidF : ID callFunction SEMICOLON'
 
 
+def p_callFunction(p):
+    '''callFunction : LPAREN expressions RPAREN'''
+
+
 def p_expressions(p):
     '''expressions : expression expressionsPrime 
                 |'''
@@ -226,20 +230,24 @@ def p_nonConditional(p):
 
 
 def p_expression(p):
-    '''expression : miniExpression AND addOperator miniExpression
-                    | miniExpression OR addOperator miniExpression
-                    | NOT addOperator LPAREN miniExpression RPAREN popOperator
-                    | miniExpression'''
+    '''expression : miniExpression addAndOr AND addOperator expression
+                    | miniExpression addAndOr OR addOperator expression
+                    | miniExpression addAndOr'''
 
 
 def p_miniExpression(p):
-    '''miniExpression : exp GT addOperator exp
-                | exp LT addOperator exp
-                | exp NE addOperator exp
-                | exp EQEQ addOperator exp
-                | exp LTEQ addOperator exp
-                | exp GTEQ addOperator exp
-                | exp'''
+    '''miniExpression : NOT addOperator LPAREN expression RPAREN addNot
+                    | microExpression addNot'''
+
+
+def p_microExpression(p):
+    '''microExpression : exp addExp GT addOperator microExpression
+                | exp addExp LT addOperator microExpression
+                | exp addExp NE addOperator microExpression
+                | exp addExp EQEQ addOperator microExpression
+                | exp addExp LTEQ addOperator microExpression
+                | exp addExp GTEQ addOperator microExpression
+                | exp addExp'''
 
 
 def p_exp(p):
@@ -248,30 +256,113 @@ def p_exp(p):
             | term addTerm MINUS addOperator exp'''
 
 
+def p_term(p):
+    '''term : factor addFactor
+            | factor addFactor MULTIPLY addOperator term 
+            | factor addFactor DIVIDE addOperator term'''
+
+
+def p_factor(p):
+    '''factor : LPAREN addOperator expression RPAREN popOperator
+                | varCst'''
+
+
+def p_varCst(p):
+    '''varCst : CST_FLOAT addFloat
+            | CST_INT addInt
+            | CST_CHAR addChar
+            | callableCst'''
+
+
+def p_callableCst(p):
+    '''callableCst : ID
+                |  ID callFunction
+                | ID arrPos'''
+    if (p[1] != None):
+        print(" cst: ", p[1])
+
+
+def p_popOperator(p):
+    'popOperator :'
+    operatorStack.pop()
+
+
+def p_addOperator(p):
+    'addOperator :'
+    operatorStack.push(p[-1])
+
+
+def p_addAndOr(p):
+    'addAndOr :'
+    if (operatorStack.top() in ['and', 'or']):
+        operator = operatorStack.pop()
+        rightType = typeStack.pop()
+        leftType = typeStack.pop()
+        rightOperand = operandStack.pop()
+        leftOperand = operandStack.pop()
+        resultType = semanticCube[(leftType, rightType, operator)]
+        if resultType != 'error':
+            if operator == 'and':
+                result = (leftOperand != '0' and rightOperand != '0')
+            else:
+                result = (leftOperand != '0' or rightOperand != '0')
+            quadruple = Quadruple(operator, leftOperand, rightOperand, result)
+            operandStack.push(quadruple.result)
+            typeStack.push(resultType)
+            print("andor ", quadruple.result)
+        else:
+            raise SyntaxError
+
+
+def p_addNot(p):
+    'addNot :'
+    if (operatorStack.top() == 'not'):
+        operator = operatorStack.pop()
+        opType = typeStack.pop()
+        operand = operandStack.pop()
+        print(operand)
+        if (opType == 'int'):
+            result = operand == '0'
+            quadruple = Quadruple(operator, operand, None, result)
+            operandStack.push(quadruple.result)
+            typeStack.push('int')
+            print(quadruple.result)
+        else:
+            raise SyntaxError
+
+
+def p_addExp(p):
+    'addExp :'
+    if (operatorStack.top() in ['<', '<=', '>', '>=', '<>', '==']):
+        operator = operatorStack.pop()
+        rightType = typeStack.pop()
+        leftType = typeStack.pop()
+        rightOperand = operandStack.pop()
+        leftOperand = operandStack.pop()
+        resultType = semanticCube[(leftType, rightType, operator)]
+        if resultType != 'error':
+            quadruple = Quadruple(operator, leftOperand, rightOperand, "tx")
+            operandStack.push(quadruple.result)
+            typeStack.push(resultType)
+            print(quadruple.result)
+        else:
+            raise SyntaxError
+
+
 def p_addTerm(p):
     'addTerm :'
     if (operatorStack.top() in ['+', '-']):
-        print(operatorStack)
-        print(operandStack)
-        print(typeStack)
         operator = operatorStack.pop()
-        print(operator)
         rightType = typeStack.pop()
-        print(rightType)
-        rightOperand = getConvertedOperand(operandStack.pop(), rightType)
         leftType = typeStack.pop()
+        rightOperand = getConvertedOperand(operandStack.pop(), rightType)
         leftOperand = getConvertedOperand(operandStack.pop(), leftType)
-        print(leftType, rightType, operator)
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != 'error':
             if (operator == '+'):
                 result = leftOperand + rightOperand
             elif (operator == '-'):
                 result = leftOperand - rightOperand
-            elif (operator == '*'):
-                result = leftOperand * rightOperand
-            elif (operator == '/'):
-                result = leftOperand / rightOperand
             else:
                 raise SyntaxError
             quadruple = Quadruple(operator, leftOperand, rightOperand, result)
@@ -321,34 +412,6 @@ def getConvertedOperand(operand, opType):
     return operand
 
 
-def p_term(p):
-    '''term : factor addFactor
-            | factor addFactor MULTIPLY addOperator term 
-            | factor addFactor DIVIDE addOperator term'''
-
-
-def p_factor(p):
-    '''factor : LPAREN addOperator expression RPAREN popOperator
-                | varCst'''
-
-
-def p_popOperator(p):
-    'popOperator :'
-    operatorStack.pop()
-
-
-def p_addOperator(p):
-    'addOperator :'
-    operatorStack.push(p[-1])
-
-
-def p_varCst(p):
-    '''varCst : CST_FLOAT addFloat
-            | CST_INT addInt
-            | CST_CHAR addChar
-            | callableCst'''
-
-
 def p_addFloat(p):
     'addFloat :'
     operandStack.push(p[-1])
@@ -365,18 +428,6 @@ def p_addChar(p):
     'addChar :'
     operandStack.push(p[-1])
     typeStack.push('char')
-
-
-def p_callableCst(p):
-    '''callableCst : ID
-                |  ID callFunction
-                | ID arrPos'''
-    if (p[1] != None):
-        print(" cst: ", p[1])
-
-
-def p_callFunction(p):
-    '''callFunction : LPAREN expressions RPAREN'''
 
 
 # Manejo de errores
