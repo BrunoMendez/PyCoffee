@@ -1,11 +1,10 @@
-
 from collections import deque
 
+
 # Una pila LIFO con los metodos basicos
-# Usamos esta clase para limitar el uso de funciones de la 
+# Usamos esta clase para limitar el uso de funciones de la
 # libreria deque a solo las necesarias para una pila
 class Stack:
-
     def __init__(self):
         self.stack = deque()
 
@@ -20,14 +19,19 @@ class Stack:
     def size(self):
         return len(self.stack)
 
+    def top(self):
+        if len(self.stack) < 1:
+            return None
+        return self.stack[len(self.stack) - 1]
+
     def __str__(self):
         return str(list(self.stack))
 
     def empty(self):
-        if len(self.stack) == 0: return True; return False
+        return len(self.stack) == 0
+
 
 class Queue:
-
     def __init__(self):
         self.queue = deque()
 
@@ -46,17 +50,21 @@ class Queue:
         return str(list(self.queue))
 
     def empty(self):
-        if len(self.queue) == 0: return True; return False
+        return len(self.queue) == 0
+
 
 semanticCube = {}
 
 types = ["error", "int", "float", "char"]
 
-operator = ["+", "-", "*", "/", ">", "<", ">=", "<=", "==", "<>", "and", "or", "not", "="]
+operator = [
+    "+", "-", "*", "/", ">", "<", ">=", "<=", "==", "<>", "and", "or", "not",
+    "="
+]
 
-for i in types: # Left operand
-    for j in types: # Right operand
-        for k in operator: # Operators
+for i in types:  # Left operand
+    for j in types:  # Right operand
+        for k in operator:  # Operators
             if (i == "error" or j == "error"):
                 semanticCube[(i, j, k)] = "error"
             elif (i == "int" and j == "int"):
@@ -75,19 +83,23 @@ for i in types: # Left operand
                     semanticCube[(i, j, k)] = "char"
                 else:
                     semanticCube[(i, j, k)] = "error"
-            elif ((i == "int" and j == "float") or (i == "float" and j == "int")):
+            elif ((i == "int" and j == "float")
+                  or (i == "float" and j == "int")):
                 if (k in ["+", "-", "*", "/"]):
                     semanticCube[(i, j, k)] = "float"
                 elif (k in ["and", "or", "="]):
                     semanticCube[(i, j, k)] = "error"
                 else:
                     semanticCube[(i, j, k)] = "int"
-            elif ((i == "int" and j == "char") or (i == "char" and j == "int")):
+            elif ((i == "int" and j == "char")
+                  or (i == "char" and j == "int")):
                 semanticCube[(i, j, k)] = "error"
-            elif ((i == "float" and j == "char") or (i == "char" and j == "float")):
+            elif ((i == "float" and j == "char")
+                  or (i == "char" and j == "float")):
                 semanticCube[(i, j, k)] = "error"
             else:
                 semanticCube[(i, j, k)] = "error"
+
 
 class Quadruple():
     def __init__(self, operator, leftOperand, rightOperand, result):
@@ -95,8 +107,3 @@ class Quadruple():
         self.leftOperand = leftOperand
         self.rightOperand = rightOperand
         self.result = result
-
-# class ExpressionEvaluator():
-
-#     def __init__(self):
-#         pass

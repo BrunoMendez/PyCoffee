@@ -1,13 +1,6 @@
 program patito;
 var x: int;
 
-void function form(y:int) 
-var z: float;
-{
-    x = 5;
-}
-
 main() {
-    x = 5;
-    form(x);
+    x = 1+2*5;
 }
