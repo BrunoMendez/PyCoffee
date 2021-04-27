@@ -302,6 +302,7 @@ def p_addAndOr(p):
         leftOperand = operandStack.pop()
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != 'error':
+            # result <- avail.next()
             if operator == 'and':
                 result = (leftOperand != '0' and rightOperand != '0')
             else:
@@ -309,6 +310,7 @@ def p_addAndOr(p):
             quadruple = Quadruple(operator, leftOperand, rightOperand, result)
             operandStack.push(quadruple.result)
             typeStack.push(resultType)
+            # if any operand were a temporal space return it to avail
             print("andor ", quadruple.result)
         else:
             raise SyntaxError
@@ -322,10 +324,12 @@ def p_addNot(p):
         operand = operandStack.pop()
         print(operand)
         if (opType == 'int'):
+            # result <- avail.next()
             result = operand == '0'
             quadruple = Quadruple(operator, operand, None, result)
             operandStack.push(quadruple.result)
             typeStack.push('int')
+            # if any operand were a temporal space return it to avail
             print(quadruple.result)
         else:
             raise SyntaxError
@@ -341,9 +345,11 @@ def p_addExp(p):
         leftOperand = operandStack.pop()
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != 'error':
+            # result <- avail.next()
             quadruple = Quadruple(operator, leftOperand, rightOperand, "tx")
             operandStack.push(quadruple.result)
             typeStack.push(resultType)
+              # if any operand were a temporal space return it to avail
             print(quadruple.result)
         else:
             raise SyntaxError
@@ -359,20 +365,25 @@ def p_addTerm(p):
         leftOperand = getConvertedOperand(operandStack.pop(), leftType)
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != 'error':
+            # result <- avail.next()
+            # Why are we checking the operator twice??
             if (operator == '+'):
                 result = leftOperand + rightOperand
             elif (operator == '-'):
                 result = leftOperand - rightOperand
             else:
                 raise SyntaxError
+                # error('type mismatch') ---- we need to program the errors
             quadruple = Quadruple(operator, leftOperand, rightOperand, result)
             operandStack.push(result)
             typeStack.push(resultType)
+            # if any operand were a temporal space return it to avail
+            
             print(quadruple.result)
         else:
             raise SyntaxError
 
-
+# add factor maybe is not necessary or to accomplish SRP keep it as different functions
 def p_addFactor(p):
     'addFactor :'
     if (operatorStack.top() in ['*', '/']):
@@ -389,15 +400,19 @@ def p_addFactor(p):
         print(leftType, rightType, operator)
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != 'error':
+             # result <- avail.next()
+            # Why are we checking the operator twice??
             if (operator == '*'):
                 result = leftOperand * rightOperand
             elif (operator == '/'):
                 result = leftOperand / rightOperand
             else:
                 raise SyntaxError
+                 # error('type mismatch') ---- we need to program the errors
             quadruple = Quadruple(operator, leftOperand, rightOperand, result)
             operandStack.push(result)
             typeStack.push(resultType)
+             # if any operand were a temporal space return it to avail
             print(quadruple.result)
         else:
             raise SyntaxError
