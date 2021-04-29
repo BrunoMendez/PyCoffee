@@ -135,16 +135,16 @@ def p_paramsPrime(p):
 
 
 def p_block(p):
-    '''block : LBRACE statutes RBRACE'''
+    '''block : LBRACE statements RBRACE'''
 
 
-def p_statutes(p):
-    '''statutes : statute statutes 
+def p_statements(p):
+    '''statements : statement statements 
                 | '''
 
 
-def p_statute(p):
-    '''statute : assignment
+def p_statement(p):
+    '''statement : assignment
                 | write
                 | callVoidF
                 | return
