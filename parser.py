@@ -350,7 +350,7 @@ def p_addExp(p):
             quadruple = Quadruple(operator, leftOperand, rightOperand, "tx")
             operandStack.push(quadruple.result)
             typeStack.push(resultType)
-              # if any operand were a temporal space return it to avail
+            # if any operand were a temporal space return it to avail
             print(quadruple.result)
         else:
             raise SyntaxError
@@ -367,7 +367,6 @@ def p_addTerm(p):
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != 'error':
             # result <- avail.next()
-            # Why are we checking the operator twice??
             if (operator == '+'):
                 result = leftOperand + rightOperand
             elif (operator == '-'):
@@ -379,12 +378,12 @@ def p_addTerm(p):
             operandStack.push(result)
             typeStack.push(resultType)
             # if any operand were a temporal space return it to avail
-            
+
             print(quadruple.result)
         else:
             raise SyntaxError
 
-# add factor maybe is not necessary or to accomplish SRP keep it as different functions
+
 def p_addFactor(p):
     'addFactor :'
     if (operatorStack.top() in ['*', '/']):
@@ -401,19 +400,18 @@ def p_addFactor(p):
         print(leftType, rightType, operator)
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != 'error':
-             # result <- avail.next()
-            # Why are we checking the operator twice??
+            # result <- avail.next()
             if (operator == '*'):
                 result = leftOperand * rightOperand
             elif (operator == '/'):
                 result = leftOperand / rightOperand
             else:
                 raise SyntaxError
-                 # error('type mismatch') ---- we need to program the errors
+                # error('type mismatch') ---- we need to program the errors
             quadruple = Quadruple(operator, leftOperand, rightOperand, result)
             operandStack.push(result)
             typeStack.push(resultType)
-             # if any operand were a temporal space return it to avail
+            # if any operand were a temporal space return it to avail
             print(quadruple.result)
         else:
             raise SyntaxError
