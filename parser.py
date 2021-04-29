@@ -17,6 +17,7 @@ currentType = ""
 operatorStack = Stack()
 operandStack = Stack()
 typeStack = Stack()
+jumpStack = Stack()
 avail = Queue()
 
 # Toma precedencia ( sobre ID para no reducir ID cuando llamamos una funcion.
@@ -414,7 +415,49 @@ def p_addFactor(p):
             print(quadruple.result)
         else:
             raise SyntaxError
+def p_decision(p):
+    'decision :'
+    exp_type = typeStack.pop()
+    # Falta logica del GoToF
+    # Falta logica del GotoV
+    # Falta logica del Goto
+    # si el if se cumple entonces evalua lo de adentro
+    # si no salta al else
+    GotoF = ''
+    if (exp_type != int):
+        raise SyntaxError
+    else:
+        result = operandStack.pop()
+        quadruple = Quadruple(GotoF, result, '', '')
+        # cont son los tokens???
+        end = jumpStack.push(p-1)
+    end = jumpStack.pop()
+    # que hace el FILL???
+    #FILL(end, p)
+    # manejamos misma logica para el else ?
+    # tenemos funcion decisionPrime que incluye al else
 
+def p_conditional(p):
+    'conditional : '
+    # es jumpStack(p) ???
+    jumpStack.push(p)
+    exp_type = typeStack.pop()
+    # Falta definir GoToF
+    GotoF = ''
+    if(exp_type != int):
+        raise SyntaxError
+        # Logica de manejo de errors
+        #error('Type Mismatch')
+    else:
+        result = operandStack.pop()
+        quadruple = Quadruple(GoToF, result, '', '')
+        jumpStack.push(p-1)
+    end = jumpStack.pop()
+    #return=jumpStack.pop() ??? return is a reserved word 
+    # are we meant to return that ?
+    ret=jumpStack.pop()
+    quadruple = Quadruple(GoTo, ret, '', '')
+    #FILL(end,p)
 
 def getConvertedOperand(operand, opType):
     print(operand)
