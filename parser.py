@@ -8,7 +8,8 @@ from datastructures import *
 
 tokens = lexer.tokens
 
-currentScope = "global"
+GLOBAL_SCOPE = "global"
+currentScope = GLOBAL_SCOPE
 functionDirectory = {}
 variableTable = {}
 varIds = Queue()
@@ -36,7 +37,7 @@ def p_program(p):
 
 def p_createGlobalTables(p):
     'createGlobalTables : '
-    currentScope = "global"
+    currentScope = GLOBAL_SCOPE
     functionDirectory[currentScope] = "void"
     variableTable[currentScope] = {}
 
@@ -86,8 +87,23 @@ def p_addId(p):
 
 
 def p_ids2(p):
-    '''ids2 : ID 
-            | ID arrPos'''
+    '''ids2 : ID addIdToStack
+            | ID addIdToStack arrPos'''
+
+
+def p_addIdToStack(p):
+    'addIdToStack :'
+    # manejar arrays
+    varId = p[-1]
+    if(varId in variableTable[currentScope]) {
+        typeStack.push(variableTable[currentScope][varId]["type"])
+        operandStack.push(varId)
+    } elif (varId in variableTable[GLOBAL_SCOPE]) {
+        typeStack.push(variableTable[GLOBAL_SCOPE][varId]["type"])
+        operandStack.push(varId)
+    } else {
+        #Throw error
+    }
 
 
 def p_arrPos(p):
@@ -156,16 +172,37 @@ def p_statement(p):
 
 
 def p_assignment(p):
-    'assignment : ids2 EQUAL expression SEMICOLON'
+    'assignment : ids2 EQUAL addOperator expression SEMICOLON'
+    res = operandStack.pop()
+    resType = typeStack.pop()
+    leftSide = operandStack.pop()
+    leftType = operandStack.pop()
+    operator = operatorStack.pop()
+    opType = semanticCube([leftType, resType, operator])
+    if (opType != "error") {
+        Quadruple(operator, None, res, leftSide)
+    } else {
+        # Create error message
+        raise SyntaxError
+    }
+
 
 
 def p_write(p):
-    '''write : PRINT LPAREN writePrime RPAREN SEMICOLON'''
+    '''write : PRINT addOperator LPAREN writePrime RPAREN SEMICOLON'''
 
 
 def p_writePrime(p):
-    '''writePrime : expression writePrimePrime
-                    | CST_STRING writePrimePrime'''
+    '''writePrime : expression printExpression writePrimePrime
+                    | CST_STRING printString writePrimePrime'''
+
+def p_printExpression(p):
+    'printExpression :'
+    Quadruple("print", None, None, operandStack.pop())
+
+def p_printString(p):
+    'printString :'
+    Quadruple("print", None, None, p[-1])
 
 
 def p_writePrimePrime(p):
@@ -200,7 +237,14 @@ def p_read(p):
 
 
 def p_readPrime(p):
-    'readPrime : ids2 readPrimePrime'
+    'readPrime : ids2 readVar readPrimePrime'
+
+def p_readVar(p):
+    'readVar :'
+    var = operandStack.pop()
+    typeStack.pop()
+    Quadruple("read", None, None, var)
+
 
 
 def p_readPrimePrime(p):
@@ -415,6 +459,8 @@ def p_addFactor(p):
             print(quadruple.result)
         else:
             raise SyntaxError
+
+
 def p_decision(p):
     'decision :'
     exp_type = typeStack.pop()
@@ -424,18 +470,19 @@ def p_decision(p):
     # si el if se cumple entonces evalua lo de adentro
     # si no salta al else
     GotoF = ''
-    if (exp_type != int):
+    if (exp_type != "int"):
         raise SyntaxError
     else:
         result = operandStack.pop()
         quadruple = Quadruple(GotoF, result, '', '')
         # cont son los tokens???
-        end = jumpStack.push(p-1)
+        end = jumpStack.push(p - 1)
     end = jumpStack.pop()
     # que hace el FILL???
     #FILL(end, p)
     # manejamos misma logica para el else ?
     # tenemos funcion decisionPrime que incluye al else
+
 
 def p_conditional(p):
     'conditional : '
@@ -444,20 +491,21 @@ def p_conditional(p):
     exp_type = typeStack.pop()
     # Falta definir GoToF
     GotoF = ''
-    if(exp_type != int):
+    if (exp_type != "int"):
         raise SyntaxError
         # Logica de manejo de errors
         #error('Type Mismatch')
     else:
         result = operandStack.pop()
         quadruple = Quadruple(GoToF, result, '', '')
-        jumpStack.push(p-1)
+        jumpStack.push(p - 1)
     end = jumpStack.pop()
-    #return=jumpStack.pop() ??? return is a reserved word 
+    #return=jumpStack.pop() ??? return is a reserved word
     # are we meant to return that ?
-    ret=jumpStack.pop()
+    ret = jumpStack.pop()
     quadruple = Quadruple(GoTo, ret, '', '')
     #FILL(end,p)
+
 
 def getConvertedOperand(operand, opType):
     print(operand)
