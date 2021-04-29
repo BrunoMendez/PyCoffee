@@ -415,7 +415,6 @@ def p_addFactor(p):
             print(quadruple.result)
         else:
             raise SyntaxError
-# Pregunta donde
 def p_decision(p):
     'decision :'
     exp_type = typeStack.pop()
