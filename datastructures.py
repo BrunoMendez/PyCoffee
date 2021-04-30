@@ -106,3 +106,18 @@ class Quadruple():
         self.leftOperand = leftOperand
         self.rightOperand = rightOperand
         self.result = result
+
+    def __str__(self):
+        return (str(self.operator) + " " + str(self.leftOperand) + " " +
+                str(self.rightOperand) + " " + str(self.result))
+
+
+class QuadrupleList():
+    def __init__(self):
+        self.list = []
+        self.next_index = 0
+
+    def register(self, quadruple):
+        self.list.append(quadruple)
+        print(*self.list)
+        self.next_index = self.next_index + 1
