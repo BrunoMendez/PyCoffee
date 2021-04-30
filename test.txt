@@ -2,6 +2,14 @@ program patito;
 var x,y,z: int;
 
 main() {
+    while(x < 1) {
+
+    }
+    if(1<2) {
+
+    } else {
+        
+    }
     x = 5 + 5 * 3 / 1;
     y = 4 * 3;
 }

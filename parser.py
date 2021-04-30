@@ -27,14 +27,16 @@ temps = 0
 
 # definition of avail
 
+
 def next_avail():
     global temps
     temps = temps + 1
     return "t" + str(temps)
 
+
 # Toma precedencia ( sobre ID para no reducir ID cuando llamamos una funcion.
 precedence = (
-    ('nonassoc', 'ID'),
+    ('right', 'ID', 'LPAREN'),
     ('nonassoc', 'LPAREN'),
 )
 
@@ -99,7 +101,7 @@ def p_addId(p):
 
 def p_ids2(p):
     '''ids2 : ID addIdToStack
-            | ID addIdToStack arrPos'''
+            | ID arrPos'''
 
 
 def p_addIdToStack(p):
@@ -220,6 +222,7 @@ def p_printString(p):
     quadruple = Quadruple("print", None, None, p[-1])
     quadruples.append(quadruple)
 
+
 def p_writePrimePrime(p):
     '''writePrimePrime : COMA writePrime
                         | '''
@@ -274,12 +277,17 @@ def p_repetition(p):
 
 
 def p_decision(p):
-    '''decision : IF LPAREN expression addIf1 RPAREN block addIf2
-                | IF LPAREN expression addIf1 RPAREN block addIf3 ELSE block addIf2'''
+    'decision : IF LPAREN expression addIf1 RPAREN block decisionPrime'
+
+
+def p_decisionPrime(p):
+    '''decisionPrime : addIf2
+                    | addIf3 ELSE block addIf2'''
 
 
 # removi decisionPrime para mantener la logica al agregar el if
-# esta decision pudiera generar shift-reduce 
+# esta decision pudiera generar shift-reduce
+
 
 def p_conditional(p):
     'conditional : WHILE addWhile1 LPAREN expression addWhile2 RPAREN block addWhile3'
@@ -335,7 +343,7 @@ def p_varCst(p):
 
 
 def p_callableCst(p):
-    '''callableCst : ID
+    '''callableCst : ID addIdToStack
                 |  ID callFunction
                 | ID arrPos'''
     if (p[1] != None):
@@ -363,7 +371,8 @@ def p_addAndOr(p):
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != 'error':
             result = next_avail()
-            quadruples.append(Quadruple(operator, leftOperand, rightOperand, result))
+            quadruples.append(
+                Quadruple(operator, leftOperand, rightOperand, result))
             operandStack.push(result)
             typeStack.push(resultType)
             # if any operand were a temporal space return it to avail
@@ -403,7 +412,8 @@ def p_addExp(p):
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != 'error':
             result = next_avail()
-            quadruples.append(Quadruple(operator, leftOperand, rightOperand, result))
+            quadruples.append(
+                Quadruple(operator, leftOperand, rightOperand, result))
             operandStack.push(result)
             typeStack.push(resultType)
             # if any operand were a temporal space return it to avail
@@ -452,6 +462,8 @@ def p_addFactor(p):
         else:
             # error('type mismatch') ---- we need to program the errors
             raise SyntaxError
+
+
 def p_addIf1(p):
     'addIf1 : '
     exp_type = typeStack.pop()
@@ -462,22 +474,32 @@ def p_addIf1(p):
         result = operandStack.pop()
         quadruple = Quadruple("GOTOF", result, None, None)
         quadruples.append(quadruple)
-        jumpStack.push(len(quadruples)-1)
+        jumpStack.push(len(quadruples) - 1)
+
+
 def p_addIf2(p):
     'addIf2 : '
     end = jumpStack.pop()
-    quadruples[end] = Quadruple(quadruples[end].operator, quadruples[end].leftOperand, None, len(quadruples))
+    quadruples[end] = Quadruple(quadruples[end].operator,
+                                quadruples[end].leftOperand, None,
+                                len(quadruples))
+
+
 def p_addIf3(p):
     'addIf3 : '
     quadruple = Quadruple("GOTO", None, None, None)
     quadruples.append(quadruple)
     false = jumpStack.pop()
-    jumpStack.push(len(quadruples)-1)
-    quadruples[false] = Quadruple("GOTOF", quadruples[false].leftOperand, None, len(quadruples))
+    jumpStack.push(len(quadruples) - 1)
+    quadruples[false] = Quadruple("GOTOF", quadruples[false].leftOperand, None,
+                                  len(quadruples))
+
 
 def p_addWhile1(p):
     'addWhile1 : '
     jumpStack.push(len(quadruples))
+
+
 def p_addWhile2(p):
     'addWhile2 : '
     result = operandStack.pop()
@@ -490,13 +512,18 @@ def p_addWhile2(p):
         quadruple = Quadruple("GOTOF", result, None, None)
         quadruples.append(quadruple)
         jumpStack.push(len(quadruples) - 1)
+
+
 def p_addWhile3(p):
     'addWhile3 : '
     end = jumpStack.pop()
     ret = jumpStack.pop()
-    quadruple = Quadruple("GOTO",None, None, ret)
+    quadruple = Quadruple("GOTO", None, None, ret)
     quadruples.append(quadruple)
-    quadruples[end] = Quadruple(quadruples[end].operator, quadruples[end].leftOperand, None, len(quadruples))
+    quadruples[end] = Quadruple(quadruples[end].operator,
+                                quadruples[end].leftOperand, None,
+                                len(quadruples))
+
 
 # getConvertedOperant is not necessary now!
 def p_addFloat(p):
