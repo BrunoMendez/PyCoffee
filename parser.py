@@ -277,16 +277,12 @@ def p_repetition(p):
 
 
 def p_decision(p):
-    'decision : IF LPAREN expression addIf1 RPAREN block decisionPrime'
+    'decision : IF LPAREN expression addIf1 RPAREN block decisionPrime addIf2'
 
 
 def p_decisionPrime(p):
-    '''decisionPrime : addIf2
-                    | addIf3 ELSE block addIf2'''
-
-
-# removi decisionPrime para mantener la logica al agregar el if
-# esta decision pudiera generar shift-reduce
+    '''decisionPrime : addIf3 ELSE block
+                    |'''
 
 
 def p_conditional(p):
@@ -467,11 +463,11 @@ def p_addFactor(p):
 def p_addIf1(p):
     'addIf1 : '
     exp_type = typeStack.pop()
+    result = operandStack.pop()
     if exp_type != 'int':
         raise SyntaxError
         #error('type mismatch')
     else:
-        result = operandStack.pop()
         quadruple = Quadruple("GOTOF", result, None, None)
         quadruples.append(quadruple)
         jumpStack.push(len(quadruples) - 1)
@@ -487,9 +483,9 @@ def p_addIf2(p):
 
 def p_addIf3(p):
     'addIf3 : '
+    false = jumpStack.pop()
     quadruple = Quadruple("GOTO", None, None, None)
     quadruples.append(quadruple)
-    false = jumpStack.pop()
     jumpStack.push(len(quadruples) - 1)
     quadruples[false] = Quadruple("GOTOF", quadruples[false].leftOperand, None,
                                   len(quadruples))
