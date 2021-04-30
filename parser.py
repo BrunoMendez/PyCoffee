@@ -46,6 +46,8 @@ def p_program(p):
     'program : PROGRAM ID createGlobalTables SEMICOLON vars functions MAIN LPAREN RPAREN block'
     print(variableTable)
     print(functionDirectory)
+    for quadruple in quadruples:
+        print(quadruple)
 
 
 def p_createGlobalTables(p):
@@ -195,7 +197,6 @@ def p_assignment(p):
     if (opType != "error"):
         # esto estaba asi -> Quadruple(operator, None, res, leftSide)
         quadruple = Quadruple(operator, res, None, leftSide)
-        print(quadruple)
         quadruples.append(quadruple)
     else:
         # Create error message
@@ -342,8 +343,6 @@ def p_callableCst(p):
     '''callableCst : ID addIdToStack
                 |  ID callFunction
                 | ID arrPos'''
-    if (p[1] != None):
-        print(" cst: ", p[1])
 
 
 def p_popOperator(p):
@@ -396,15 +395,10 @@ def p_addExp(p):
     'addExp :'
     if (operatorStack.top() in ['<', '<=', '>', '>=', '<>', '==']):
         operator = operatorStack.pop()
-        print(operator)
         rightType = typeStack.pop()
-        print(rightType)
         leftType = typeStack.pop()
-        print(leftType)
         rightOperand = operandStack.pop()
-        print(rightOperand)
         leftOperand = operandStack.pop()
-        print(leftOperand)
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != 'error':
             result = next_avail()
@@ -429,7 +423,6 @@ def p_addTerm(p):
         if resultType != 'error':
             result = next_avail()
             quadruple = Quadruple(operator, leftOperand, rightOperand, result)
-            print(quadruple)
             quadruples.append(quadruple)
             operandStack.push(result)
             typeStack.push(resultType)
@@ -450,7 +443,6 @@ def p_addFactor(p):
         if resultType != 'error':
             result = next_avail()
             quadruple = Quadruple(operator, leftOperand, rightOperand, result)
-            print(quadruple)
             quadruples.append(quadruple)
             operandStack.push(result)
             typeStack.push(resultType)
