@@ -102,6 +102,7 @@ for i in types:  # Left operand
 
 class Quadruple():
     def __init__(self, operator, leftOperand, rightOperand, result):
+        self.id = -1
         self.operator = operator
         self.leftOperand = leftOperand
         self.rightOperand = rightOperand

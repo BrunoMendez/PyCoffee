@@ -1,9 +1,7 @@
 program patito;
-var x: int;
+var x,y,z: int;
 
 main() {
-    x = 5 + 5;
-    while (x < 5){
-        x = x - 1;
-    }
+    x = 5 + 5 * 3 / 1;
+    y = 4 * 3;
 }

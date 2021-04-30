@@ -1,6 +1,8 @@
 # Bruno Mendez A01194018
 # Esteban Torres A01193925
-
+# bug report ----> si no especificas la variable arriba del programa se queda esperando y no arroja ningun resultado
+# hacer algo para que si se pone una variable que no existe en la tabla regresar un error(variable not declared!)
+# no estamos pasando el tipo de la variable al typeStack
 import ply.yacc as yacc
 import sys
 import lexer
@@ -189,7 +191,10 @@ def p_assignment(p):
     operator = operatorStack.pop()
     opType = semanticCube[(leftType, resType, operator)]
     if (opType != "error"):
-        Quadruple(operator, None, res, leftSide)
+        # esto estaba asi -> Quadruple(operator, None, res, leftSide)
+        quadruple = Quadruple(operator, res, None, leftSide)
+        print(quadruple)
+        quadruples.append(quadruple)
     else:
         # Create error message
         raise SyntaxError
@@ -206,13 +211,14 @@ def p_writePrime(p):
 
 def p_printExpression(p):
     'printExpression :'
-    Quadruple("print", None, None, operandStack.pop())
+    quadruple = Quadruple("print", None, None, operandStack.pop())
+    quadruples.append(quadruple)
 
 
 def p_printString(p):
     'printString :'
-    Quadruple("print", None, None, p[-1])
-
+    quadruple = Quadruple("print", None, None, p[-1])
+    quadruples.append(quadruple)
 
 def p_writePrimePrime(p):
     '''writePrimePrime : COMA writePrime
@@ -253,7 +259,8 @@ def p_readVar(p):
     'readVar :'
     var = operandStack.pop()
     typeStack.pop()
-    Quadruple("read", None, None, var)
+    quadruple = Quadruple("read", None, None, var)
+    quadruples.append(quadruple)
 
 
 def p_readPrimePrime(p):
@@ -267,13 +274,12 @@ def p_repetition(p):
 
 
 def p_decision(p):
-    'decision : IF LPAREN expression RPAREN block decisionPrime'
+    '''decision : IF LPAREN expression addIf1 RPAREN block addIf2
+                | IF LPAREN expression addIf1 RPAREN block addIf3 ELSE block addIf2'''
 
 
-def p_decisionPrime(p):
-    '''decisionPrime : ELSE block 
-                    | '''
-
+# removi decisionPrime para mantener la logica al agregar el if
+# esta decision pudiera generar shift-reduce 
 
 def p_conditional(p):
     'conditional : WHILE addWhile1 LPAREN expression addWhile2 RPAREN block addWhile3'
@@ -385,10 +391,15 @@ def p_addExp(p):
     'addExp :'
     if (operatorStack.top() in ['<', '<=', '>', '>=', '<>', '==']):
         operator = operatorStack.pop()
+        print(operator)
         rightType = typeStack.pop()
+        print(rightType)
         leftType = typeStack.pop()
+        print(leftType)
         rightOperand = operandStack.pop()
+        print(rightOperand)
         leftOperand = operandStack.pop()
+        print(leftOperand)
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != 'error':
             result = next_avail()
@@ -406,12 +417,13 @@ def p_addTerm(p):
         operator = operatorStack.pop()
         rightType = typeStack.pop()
         leftType = typeStack.pop()
-        rightOperand = getConvertedOperand(operandStack.pop(), rightType)
-        leftOperand = getConvertedOperand(operandStack.pop(), leftType)
+        rightOperand = operandStack.pop()
+        leftOperand = operandStack.pop()
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != 'error':
             result = next_avail()
             quadruple = Quadruple(operator, leftOperand, rightOperand, result)
+            print(quadruple)
             quadruples.append(quadruple)
             operandStack.push(result)
             typeStack.push(resultType)
@@ -425,13 +437,14 @@ def p_addFactor(p):
     if (operatorStack.top() in ['*', '/']):
         operator = operatorStack.pop()
         rightType = typeStack.pop()
-        rightOperand = getConvertedOperand(operandStack.pop(), rightType)
         leftType = typeStack.pop()
-        leftOperand = getConvertedOperand(operandStack.pop(), leftType)
+        rightOperand = operandStack.pop()
+        leftOperand = operandStack.pop()
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != 'error':
             result = next_avail()
             quadruple = Quadruple(operator, leftOperand, rightOperand, result)
+            print(quadruple)
             quadruples.append(quadruple)
             operandStack.push(result)
             typeStack.push(resultType)
@@ -439,6 +452,29 @@ def p_addFactor(p):
         else:
             # error('type mismatch') ---- we need to program the errors
             raise SyntaxError
+def p_addIf1(p):
+    'addIf1 : '
+    exp_type = typeStack.pop()
+    if exp_type != 'int':
+        raise SyntaxError
+        #error('type mismatch')
+    else:
+        result = operandStack.pop()
+        quadruple = Quadruple("GOTOF", result, None, None)
+        quadruples.append(quadruple)
+        jumpStack.push(len(quadruples)-1)
+def p_addIf2(p):
+    'addIf2 : '
+    end = jumpStack.pop()
+    quadruples[end] = Quadruple(quadruples[end].operator, quadruples[end].leftOperand, None, len(quadruples))
+def p_addIf3(p):
+    'addIf3 : '
+    quadruple = Quadruple("GOTO", None, None, None)
+    quadruples.append(quadruple)
+    false = jumpStack.pop()
+    jumpStack.push(len(quadruples)-1)
+    quadruples[false] = Quadruple("GOTOF", quadruples[false].leftOperand, None, len(quadruples))
+
 def p_addWhile1(p):
     'addWhile1 : '
     jumpStack.push(len(quadruples))
@@ -459,16 +495,10 @@ def p_addWhile3(p):
     end = jumpStack.pop()
     ret = jumpStack.pop()
     quadruple = Quadruple("GOTO",None, None, ret)
+    quadruples.append(quadruple)
     quadruples[end] = Quadruple(quadruples[end].operator, quadruples[end].leftOperand, None, len(quadruples))
-    
-def getConvertedOperand(operand, opType):
-    if (opType == 'int'):
-        return int(operand)
-    elif (opType == 'float'):
-        return float(operand)
-    return operand
 
-
+# getConvertedOperant is not necessary now!
 def p_addFloat(p):
     'addFloat :'
     operandStack.push(p[-1])
