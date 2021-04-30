@@ -21,6 +21,7 @@ operatorStack = Stack()
 operandStack = Stack()
 typeStack = Stack()
 jumpStack = Stack()
+forStack = Stack()
 quadruples = []
 temps = 0
 # changes on quadruples better to have it as a list for simplicity
@@ -187,7 +188,11 @@ def p_statement(p):
 
 
 def p_assignment(p):
-    'assignment : ids2 EQUAL addOperator expression SEMICOLON'
+    'assignment : ids2 EQUAL addOperator expression addAssignment SEMICOLON'
+
+
+def p_addAssignment(p):
+    'addAssignment :'
     res = operandStack.pop()
     resType = typeStack.pop()
     leftSide = operandStack.pop()
@@ -291,7 +296,78 @@ def p_conditional(p):
 
 
 def p_nonConditional(p):
-    'nonConditional : FOR LPAREN ids2 EQUAL exp COLON exp RPAREN block'
+    'nonConditional : FOR LPAREN ids2 EQUAL addOperator exp addFor1 COLON exp addFor2 RPAREN block addFor3'
+
+
+def p_addFor1(p):
+    'addFor1 :'
+    res = operandStack.pop()
+    resType = typeStack.pop()
+    leftSide = operandStack.pop()
+    leftType = typeStack.pop()
+    operator = operatorStack.pop()
+    if (resType == "int" and leftType == "int"):
+        quadruple = Quadruple(operator, res, None, leftSide)
+        quadruples.append(quadruple)
+        # Preparacion para hacer la suma a la variable cuando acabe el for
+        operandStack.push(leftSide)
+        typeStack.push(leftType)
+        operatorStack.push('+')
+        # Preparacion para hacer la comparacion aver si entra al for
+        operandStack.push(leftSide)
+        typeStack.push(leftType)
+        operatorStack.push('==')
+    else:
+        # Error for loops must be ints
+        raise SyntaxError
+
+
+def p_addFor2(p):
+    'addFor2 :'
+    operator = operatorStack.pop()
+    rightType = typeStack.pop()
+    leftType = typeStack.pop()
+    rightOperand = operandStack.pop()
+    leftOperand = operandStack.pop()
+    if rightType == 'int' and leftType == 'int':
+        result = next_avail()
+        quadruples.append(
+            Quadruple(operator, leftOperand, rightOperand, result))
+        jumpStack.push(len(quadruples) - 1)
+        quadrupleGotoF = Quadruple("GOTOF", result, None, None)
+        quadruples.append(quadrupleGotoF)
+        jumpStack.push(len(quadruples) - 1)
+        # if any operand were a temporal space return it to avail
+    else:
+        # Error for loops must be ints
+        raise SyntaxError
+
+
+def p_addFor3(p):
+    'addFor3 :'
+    operator = operatorStack.pop()
+    leftSide = operandStack.pop()
+    leftType = typeStack.pop()
+    rightSide = '1'
+    rightType = 'int'
+    resultType = semanticCube[(leftType, rightType, operator)]
+    if leftType == 'int':
+        result = next_avail()
+        quadruple = Quadruple(operator, leftSide, rightSide, result)
+        quadruples.append(quadruple)
+        quadrupleAssign = Quadruple('=', result, None, leftSide)
+        quadruples.append(quadrupleAssign)
+
+        end = jumpStack.pop()
+        ret = jumpStack.pop()
+        quadruple = Quadruple("GOTO", None, None, ret)
+        quadruples.append(quadruple)
+        quadruples[end] = Quadruple(quadruples[end].operator,
+                                    quadruples[end].leftOperand, None,
+                                    len(quadruples))
+    else:
+        # error for loops must be ints
+        raise SyntaxError
 
 
 def p_expression(p):
