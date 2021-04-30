@@ -2,5 +2,8 @@ program patito;
 var x: int;
 
 main() {
-    x = 5 + 2 - 1;
+    x = 5 + 5;
+    while (x < 5){
+        x = x - 1;
+    }
 }

@@ -19,7 +19,16 @@ operatorStack = Stack()
 operandStack = Stack()
 typeStack = Stack()
 jumpStack = Stack()
-quadruples = QuadrupleList()
+quadruples = []
+temps = 0
+# changes on quadruples better to have it as a list for simplicity
+
+# definition of avail
+
+def next_avail():
+    global temps
+    temps = temps + 1
+    return "t" + str(temps)
 
 # Toma precedencia ( sobre ID para no reducir ID cuando llamamos una funcion.
 precedence = (
@@ -267,7 +276,7 @@ def p_decisionPrime(p):
 
 
 def p_conditional(p):
-    'conditional : WHILE LPAREN expression RPAREN block'
+    'conditional : WHILE addWhile1 LPAREN expression addWhile2 RPAREN block addWhile3'
 
 
 def p_nonConditional(p):
@@ -347,15 +356,9 @@ def p_addAndOr(p):
         leftOperand = operandStack.pop()
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != 'error':
-            # result <- avail.next()
-            if operator == 'and':
-                result = (leftOperand != '0' and rightOperand != '0')
-            else:
-                result = (leftOperand != '0' or rightOperand != '0')
-            quadruples.append(
-                Quadruple(operator, leftOperand, rightOperand, result))
-            operandStack.push(
-                quadruples.list.index(quadruples.next_index - 1).result)
+            result = next_avail()
+            quadruples.append(Quadruple(operator, leftOperand, rightOperand, result))
+            operandStack.push(result)
             typeStack.push(resultType)
             # if any operand were a temporal space return it to avail
         else:
@@ -369,11 +372,9 @@ def p_addNot(p):
         opType = typeStack.pop()
         operand = operandStack.pop()
         if (opType == 'int'):
-            # result <- avail.next()
-            result = operand == '0'
+            result = next_avail()
             quadruples.append(Quadruple(operator, operand, None, result))
-            operandStack.push(
-                quadruples.list.index(quadruples.next_index - 1).result)
+            operandStack.push(result)
             typeStack.push('int')
             # if any operand were a temporal space return it to avail
         else:
@@ -390,11 +391,9 @@ def p_addExp(p):
         leftOperand = operandStack.pop()
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != 'error':
-            # result <- avail.next()
-            quadruples.register(
-                Quadruple(operator, leftOperand, rightOperand, "tx"))
-            operandStack.push(quadruples.list[quadruples.next_index -
-                                              1].result)
+            result = next_avail()
+            quadruples.append(Quadruple(operator, leftOperand, rightOperand, result))
+            operandStack.push(result)
             typeStack.push(resultType)
             # if any operand were a temporal space return it to avail
         else:
@@ -411,16 +410,9 @@ def p_addTerm(p):
         leftOperand = getConvertedOperand(operandStack.pop(), leftType)
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != 'error':
-            # result <- avail.next()
-            if (operator == '+'):
-                result = leftOperand + rightOperand
-            elif (operator == '-'):
-                result = leftOperand - rightOperand
-            else:
-                raise SyntaxError
-                # error('type mismatch') ---- we need to program the errors
+            result = next_avail()
             quadruple = Quadruple(operator, leftOperand, rightOperand, result)
-            quadruples.register(quadruple)
+            quadruples.append(quadruple)
             operandStack.push(result)
             typeStack.push(resultType)
             # if any operand were a temporal space return it to avail
@@ -438,72 +430,37 @@ def p_addFactor(p):
         leftOperand = getConvertedOperand(operandStack.pop(), leftType)
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != 'error':
-            # result <- avail.next()
-            if (operator == '*'):
-                result = leftOperand * rightOperand
-            elif (operator == '/'):
-                result = leftOperand / rightOperand
-            else:
-                raise SyntaxError
-                # error('type mismatch') ---- we need to program the errors
+            result = next_avail()
             quadruple = Quadruple(operator, leftOperand, rightOperand, result)
-            quadruples.register(quadruple)
+            quadruples.append(quadruple)
             operandStack.push(result)
             typeStack.push(resultType)
             # if any operand were a temporal space return it to avail
         else:
+            # error('type mismatch') ---- we need to program the errors
             raise SyntaxError
-
-
-def p_addIf(p):
-    'addIf :'
+def p_addWhile1(p):
+    'addWhile1 : '
+    jumpStack.push(len(quadruples))
+def p_addWhile2(p):
+    'addWhile2 : '
+    result = operandStack.pop()
     exp_type = typeStack.pop()
-    # Falta logica del GoToF
-    # Falta logica del GotoV
-    # Falta logica del Goto
-    # si el if se cumple entonces evalua lo de adentro
-    # si no salta al else
-    GotoF = ''
     if (exp_type != "int"):
-        raise SyntaxError
-    else:
-        result = operandStack.pop()
-        quadruple = Quadruple(GotoF, result, '', '')
-        quadruples.register(quadruple)
-        # cont es el contador de quadruplos
-        end = jumpStack.push(p - 1)
-    end = jumpStack.pop()
-    # que hace el FILL???
-    # FILL(end, p)
-    # manejamos misma logica para el else ?
-    # tenemos funcion decisionPrime que incluye al else
-
-
-def p_addWhile(p):
-    'addWhile : '
-    # es jumpStack(p) ???
-    jumpStack.push(p)
-    exp_type = typeStack.pop()
-    # Falta definir GoToF
-    GotoF = ''
-    if (exp_type != "int"):
-        raise SyntaxError
+        print("error type mismatch")
         # Logica de manejo de errors
         #error('Type Mismatch')
     else:
-        result = operandStack.pop()
-        quadruple = Quadruple(GoToF, result, '', '')
-        quadruples.register(quadruple)
-        jumpStack.push(p - 1)
+        quadruple = Quadruple("GOTOF", result, None, None)
+        quadruples.append(quadruple)
+        jumpStack.push(len(quadruples) - 1)
+def p_addWhile3(p):
+    'addWhile3 : '
     end = jumpStack.pop()
-    #return=jumpStack.pop() ??? return is a reserved word
-    # are we meant to return that ?
     ret = jumpStack.pop()
-    quadruple = Quadruple(GoTo, ret, '', '')
-    quadruples.register(quadruple)
-    #FILL(end,p)
-
-
+    quadruple = Quadruple("GOTO",None, None, ret)
+    quadruples[end] = Quadruple(quadruples[end].operator, quadruples[end].leftOperand, None, len(quadruples))
+    
 def getConvertedOperand(operand, opType):
     if (opType == 'int'):
         return int(operand)
