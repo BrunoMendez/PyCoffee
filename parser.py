@@ -13,6 +13,7 @@ tokens = lexer.tokens
 FUNCTION_TYPE = "type"
 FUNCTION_PARAM_COUNT = "paramCount"
 FUNCTION_VAR_COUNT = "varCount"
+FUNCTION_TEMP_COUNT = "tempCount"
 FUNCTION_QUAD_INDEX = "quadIndex"
 GLOBAL_SCOPE = "global"
 currentScope = GLOBAL_SCOPE
@@ -63,7 +64,8 @@ def p_createGlobalTables(p):
         FUNCTION_TYPE: "void",
         FUNCTION_PARAM_COUNT: 0,
         FUNCTION_VAR_COUNT: 0,
-        FUNCTION_QUAD_INDEX: 0
+        FUNCTION_QUAD_INDEX: 0,
+        FUNCTION_TEMP_COUNT: 0
     }
     variableTable[currentScope] = {}
 
@@ -84,18 +86,21 @@ def p_addVars(p):
         var = varIds.dequeue()
         if (var in variableTable[currentScope]):
             # Variable already defined error
+            print("var already in table")
+            exit()
             raise SyntaxError
         else:
             variableTable[currentScope][var] = {"type": currentType}
 
 
 def p_addFunction2(p):
-    'addFunction2 :'    
-    paramTable[currentScope] = []
+    'addFunction2 :'
     while not varIds.empty():
         var = varIds.dequeue()
         if (var in variableTable[currentScope]):
             # Variable already defined error
+            print("var already in table")
+            exit()
             raise SyntaxError
         else:
             variableTable[currentScope][var] = {"type": currentType}
@@ -171,37 +176,44 @@ def p_returnType(p):
 def p_function(p):
     'function : returnType FUNCTION ID addFunction1 LPAREN params RPAREN addFunction3 vars addFunction4 block'
     global currentScope
+    global temps
     del variableTable[currentScope]
     currentScope = "global"
-    Quadruple("ENDFunc", None, None, None)
+    functionDirectory[currentScope][FUNCTION_TEMP_COUNT] = temps
+    temps = 0
+    quadruples.append(Quadruple("ENDFunc", None, None, None))
 
 
 def p_addFunction4(p):
     'addFunction4 :'
     functionDirectory[currentScope][FUNCTION_VAR_COUNT] = len(
         variableTable[currentScope])
-    functionDirectory[currentScope][FUNCTION_QUAD_INDEX] = 
+    functionDirectory[currentScope][FUNCTION_QUAD_INDEX] = len(quadruples)
 
 
 def p_addFunction3(p):
     'addFunction3 :'
-    functionDirectory[currentScope][FUNCTION_PARAM_COUNT] = len(paramTable)
+    functionDirectory[currentScope][FUNCTION_PARAM_COUNT] = len(
+        paramTable[currentScope])
 
 
 def p_addFunction1(p):
     'addFunction1 :'
     global currentScope
     currentScope = p[-1]
+    paramTable[currentScope] = {}
+    functionDirectory[currentScope] = {}
     functionDirectory[currentScope][FUNCTION_TYPE] = currentType
     variableTable[currentScope] = {}
 
 
 def p_params(p):
-    'params : ids COLON type addFunction2 paramsPrime'
+    '''params : ids COLON type addFunction2 paramsPrime
+            |'''
 
 
 def p_paramsPrime(p):
-    '''paramsPrime : params COMA 
+    '''paramsPrime : COMA params 
                 | '''
 
 
@@ -238,15 +250,20 @@ def p_writePrime(p):
                     | CST_STRING printString writePrimePrime'''
 
 
+def p_debug(p):
+    'debug :'
+    print("@@@")
+
+
 def p_printExpression(p):
     'printExpression :'
-    quadruple = Quadruple("print", None, None, operandStack.pop())
+    quadruple = Quadruple(operatorStack.pop(), None, None, operandStack.pop())
     quadruples.append(quadruple)
 
 
 def p_printString(p):
     'printString :'
-    quadruple = Quadruple("print", None, None, p[-1])
+    quadruple = Quadruple(operatorStack.pop(), None, None, p[-1])
     quadruples.append(quadruple)
 
 
@@ -278,7 +295,7 @@ def p_return(p):
 
 
 def p_read(p):
-    'read : INPUT LPAREN readPrime RPAREN SEMICOLON'
+    'read : INPUT addOperator LPAREN readPrime RPAREN SEMICOLON'
 
 
 def p_readPrime(p):
@@ -289,7 +306,8 @@ def p_readVar(p):
     'readVar :'
     var = operandStack.pop()
     typeStack.pop()
-    quadruple = Quadruple("read", None, None, var)
+    print(var)
+    quadruple = Quadruple(operatorStack.pop(), None, None, var)
     quadruples.append(quadruple)
 
 
