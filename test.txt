@@ -1,6 +1,5 @@
 program patito;
-var x,y,z: int;
-
+var x,y,z: intasd; n : char;
 main() {
     if(1<2) {
         if(2 > 1) {
