@@ -1,6 +1,5 @@
 program patito;
 var x,y,z: int; ch: char;
-
 main() {
     for(z=1:3) {
         x = 1+1;
