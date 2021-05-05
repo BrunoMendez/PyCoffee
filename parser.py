@@ -239,19 +239,6 @@ def p_statement(p):
 
 def p_assignment(p):
     'assignment : ids2 EQUAL addOperator expression addAssignment SEMICOLON'
-    res = operandStack.pop()
-    resType = typeStack.pop()
-    leftSide = operandStack.pop()
-    leftType = typeStack.pop()
-    operator = operatorStack.pop()
-    opType = semanticCube[(leftType, resType, operator)]
-    if (opType != "error"):
-        # esto estaba asi -> Quadruple(operator, None, res, leftSide)
-        quadruple = Quadruple(operator, res, None, leftSide)
-        quadruples.append(quadruple)
-    else:
-        # Create error message
-        raise TypeMismatchError
 
 
 def p_write(p):
@@ -584,6 +571,7 @@ def p_addWhile3(p):
                                 quadruples[end].leftOperand, None,
                                 len(quadruples))
 
+
 def p_addFor1(p):
     'addFor1 :'
     res = operandStack.pop()
@@ -654,6 +642,8 @@ def p_addFor3(p):
         # error for loops must be ints
         raise SyntaxError
 
+
+# getConvertedOperant is not necessary now!
 def p_addFloat(p):
     'addFloat :'
     operandStack.push(p[-1])
@@ -677,6 +667,8 @@ def p_error(p):
     print("Syntax error at line %d, token=%s, value=%s col=%s" %
           (p.lineno, p.type, p.value, p.lexpos))
     exit()
+
+
 # Constructor del parser
 parser = yacc.yacc()
 
