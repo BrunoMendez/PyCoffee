@@ -6,6 +6,7 @@
 import ply.yacc as yacc
 import sys
 import lexer
+from errors import *
 from datastructures import *
 
 tokens = lexer.tokens
@@ -148,8 +149,7 @@ def p_addIdToStack(p):
         typeStack.push(variableTable[GLOBAL_SCOPE][varId]["type"])
         operandStack.push(varId)
     else:
-        raise SyntaxError
-        #Throw error
+        raise TypeMismatchError
 
 
 def p_arrPos(p):
@@ -239,6 +239,19 @@ def p_statement(p):
 
 def p_assignment(p):
     'assignment : ids2 EQUAL addOperator expression addAssignment SEMICOLON'
+    res = operandStack.pop()
+    resType = typeStack.pop()
+    leftSide = operandStack.pop()
+    leftType = typeStack.pop()
+    operator = operatorStack.pop()
+    opType = semanticCube[(leftType, resType, operator)]
+    if (opType != "error"):
+        # esto estaba asi -> Quadruple(operator, None, res, leftSide)
+        quadruple = Quadruple(operator, res, None, leftSide)
+        quadruples.append(quadruple)
+    else:
+        # Create error message
+        raise TypeMismatchError
 
 
 def p_write(p):
@@ -433,7 +446,7 @@ def p_addAndOr(p):
             typeStack.push(resultType)
             # if any operand were a temporal space return it to avail
         else:
-            raise SyntaxError
+            raise TypeMismatchError()
 
 
 def p_addNot(p):
@@ -449,7 +462,7 @@ def p_addNot(p):
             typeStack.push('int')
             # if any operand were a temporal space return it to avail
         else:
-            raise SyntaxError
+            raise TypeMismatchError()
 
 
 def p_addExp(p):
@@ -469,7 +482,7 @@ def p_addExp(p):
             typeStack.push(resultType)
             # if any operand were a temporal space return it to avail
         else:
-            raise SyntaxError
+            raise TypeMismatchError()
 
 
 def p_addTerm(p):
@@ -489,7 +502,7 @@ def p_addTerm(p):
             typeStack.push(resultType)
             # if any operand were a temporal space return it to avail
         else:
-            raise SyntaxError
+            raise TypeMismatchError()
 
 
 def p_addFactor(p):
@@ -509,9 +522,8 @@ def p_addFactor(p):
             typeStack.push(resultType)
             # if any operand were a temporal space return it to avail
         else:
-            # error('type mismatch') ---- we need to program the errors
-            print("type mismatch")
-            exit()
+            # error('type mismatch')
+            raise TypeMismatchError()
 
 
 def p_addIf1(p):
@@ -519,8 +531,7 @@ def p_addIf1(p):
     exp_type = typeStack.pop()
     result = operandStack.pop()
     if exp_type != 'int':
-        raise SyntaxError
-        #error('type mismatch')
+        raise TypeMismatchError
     else:
         quadruple = Quadruple("GOTOF", result, None, None)
         quadruples.append(quadruple)
@@ -555,10 +566,8 @@ def p_addWhile2(p):
     result = operandStack.pop()
     exp_type = typeStack.pop()
     if (exp_type != "int"):
-        print("error type mismatch")
-        raise SyntaxError
         # Logica de manejo de errors
-        #error('Type Mismatch')
+        raise TypeMismatchError
     else:
         quadruple = Quadruple("GOTOF", result, None, None)
         quadruples.append(quadruple)
@@ -574,7 +583,6 @@ def p_addWhile3(p):
     quadruples[end] = Quadruple(quadruples[end].operator,
                                 quadruples[end].leftOperand, None,
                                 len(quadruples))
-
 
 def p_addFor1(p):
     'addFor1 :'
@@ -646,8 +654,6 @@ def p_addFor3(p):
         # error for loops must be ints
         raise SyntaxError
 
-
-# getConvertedOperant is not necessary now!
 def p_addFloat(p):
     'addFloat :'
     operandStack.push(p[-1])
@@ -671,8 +677,6 @@ def p_error(p):
     print("Syntax error at line %d, token=%s, value=%s col=%s" %
           (p.lineno, p.type, p.value, p.lexpos))
     exit()
-
-
 # Constructor del parser
 parser = yacc.yacc()
 
