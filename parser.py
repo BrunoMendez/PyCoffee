@@ -10,10 +10,15 @@ from datastructures import *
 
 tokens = lexer.tokens
 
+FUNCTION_TYPE = "type"
+FUNCTION_PARAM_COUNT = "paramCount"
+FUNCTION_VAR_COUNT = "varCount"
+FUNCTION_QUAD_INDEX = "quadIndex"
 GLOBAL_SCOPE = "global"
 currentScope = GLOBAL_SCOPE
 functionDirectory = {}
 variableTable = {}
+paramTable = {}
 varIds = Queue()
 currentType = ""
 
@@ -54,7 +59,12 @@ def p_program(p):
 def p_createGlobalTables(p):
     'createGlobalTables : '
     currentScope = GLOBAL_SCOPE
-    functionDirectory[currentScope] = "void"
+    functionDirectory[currentScope] = {
+        FUNCTION_TYPE: "void",
+        FUNCTION_PARAM_COUNT: 0,
+        FUNCTION_VAR_COUNT: 0,
+        FUNCTION_QUAD_INDEX: 0
+    }
     variableTable[currentScope] = {}
 
 
@@ -71,10 +81,25 @@ def p_varsPrime(p):
 def p_addVars(p):
     'addVars :'
     while not varIds.empty():
-        variableTable[currentScope][varIds.dequeue()] = {
-            "type": currentType,
-            "value": []
-        }
+        var = varIds.dequeue()
+        if (var in variableTable[currentScope]):
+            # Variable already defined error
+            raise SyntaxError
+        else:
+            variableTable[currentScope][var] = {"type": currentType}
+
+
+def p_addFunction2(p):
+    'addFunction2 :'    
+    paramTable[currentScope] = []
+    while not varIds.empty():
+        var = varIds.dequeue()
+        if (var in variableTable[currentScope]):
+            # Variable already defined error
+            raise SyntaxError
+        else:
+            variableTable[currentScope][var] = {"type": currentType}
+            paramTable[currentScope][var] = {"type": currentType}
 
 
 def p_functions(p):
@@ -144,22 +169,35 @@ def p_returnType(p):
 
 
 def p_function(p):
-    'function : returnType FUNCTION ID addFunction LPAREN params RPAREN vars block'
+    'function : returnType FUNCTION ID addFunction1 LPAREN params RPAREN addFunction3 vars addFunction4 block'
     global currentScope
     del variableTable[currentScope]
     currentScope = "global"
+    Quadruple("ENDFunc", None, None, None)
 
 
-def p_addFunction(p):
-    'addFunction :'
+def p_addFunction4(p):
+    'addFunction4 :'
+    functionDirectory[currentScope][FUNCTION_VAR_COUNT] = len(
+        variableTable[currentScope])
+    functionDirectory[currentScope][FUNCTION_QUAD_INDEX] = 
+
+
+def p_addFunction3(p):
+    'addFunction3 :'
+    functionDirectory[currentScope][FUNCTION_PARAM_COUNT] = len(paramTable)
+
+
+def p_addFunction1(p):
+    'addFunction1 :'
     global currentScope
     currentScope = p[-1]
-    functionDirectory[currentScope] = currentType
+    functionDirectory[currentScope][FUNCTION_TYPE] = currentType
     variableTable[currentScope] = {}
 
 
 def p_params(p):
-    'params : ids COLON type addVars paramsPrime'
+    'params : ids COLON type addFunction2 paramsPrime'
 
 
 def p_paramsPrime(p):
@@ -454,7 +492,8 @@ def p_addFactor(p):
             # if any operand were a temporal space return it to avail
         else:
             # error('type mismatch') ---- we need to program the errors
-            raise SyntaxError
+            print("type mismatch")
+            exit()
 
 
 def p_addIf1(p):
@@ -611,7 +650,9 @@ def p_addChar(p):
 
 # Manejo de errores
 def p_error(p):
-    print("Syntax error in input!")
+    print("Syntax error at line %d, token=%s, value=%s col=%s" %
+          (p.lineno, p.type, p.value, p.lexpos))
+    exit()
 
 
 # Constructor del parser
