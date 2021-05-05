@@ -11,15 +11,10 @@ from datastructures import *
 
 tokens = lexer.tokens
 
-FUNCTION_TYPE = "type"
-FUNCTION_PARAM_COUNT = "paramCount"
-FUNCTION_VAR_COUNT = "varCount"
-FUNCTION_QUAD_INDEX = "quadIndex"
 GLOBAL_SCOPE = "global"
 currentScope = GLOBAL_SCOPE
 functionDirectory = {}
 variableTable = {}
-paramTable = {}
 varIds = Queue()
 currentType = ""
 
@@ -27,7 +22,6 @@ operatorStack = Stack()
 operandStack = Stack()
 typeStack = Stack()
 jumpStack = Stack()
-forStack = Stack()
 quadruples = []
 temps = 0
 # changes on quadruples better to have it as a list for simplicity
@@ -60,12 +54,7 @@ def p_program(p):
 def p_createGlobalTables(p):
     'createGlobalTables : '
     currentScope = GLOBAL_SCOPE
-    functionDirectory[currentScope] = {
-        FUNCTION_TYPE: "void",
-        FUNCTION_PARAM_COUNT: 0,
-        FUNCTION_VAR_COUNT: 0,
-        FUNCTION_QUAD_INDEX: 0
-    }
+    functionDirectory[currentScope] = "void"
     variableTable[currentScope] = {}
 
 
@@ -82,25 +71,10 @@ def p_varsPrime(p):
 def p_addVars(p):
     'addVars :'
     while not varIds.empty():
-        var = varIds.dequeue()
-        if (var in variableTable[currentScope]):
-            # Variable already defined error
-            raise SyntaxError
-        else:
-            variableTable[currentScope][var] = {"type": currentType}
-
-
-def p_addFunction2(p):
-    'addFunction2 :'    
-    paramTable[currentScope] = []
-    while not varIds.empty():
-        var = varIds.dequeue()
-        if (var in variableTable[currentScope]):
-            # Variable already defined error
-            raise SyntaxError
-        else:
-            variableTable[currentScope][var] = {"type": currentType}
-            paramTable[currentScope][var] = {"type": currentType}
+        variableTable[currentScope][varIds.dequeue()] = {
+            "type": currentType,
+            "value": []
+        }
 
 
 def p_functions(p):
@@ -169,35 +143,22 @@ def p_returnType(p):
 
 
 def p_function(p):
-    'function : returnType FUNCTION ID addFunction1 LPAREN params RPAREN addFunction3 vars addFunction4 block'
+    'function : returnType FUNCTION ID addFunction LPAREN params RPAREN vars block'
     global currentScope
     del variableTable[currentScope]
     currentScope = "global"
-    Quadruple("ENDFunc", None, None, None)
 
 
-def p_addFunction4(p):
-    'addFunction4 :'
-    functionDirectory[currentScope][FUNCTION_VAR_COUNT] = len(
-        variableTable[currentScope])
-    functionDirectory[currentScope][FUNCTION_QUAD_INDEX] = 
-
-
-def p_addFunction3(p):
-    'addFunction3 :'
-    functionDirectory[currentScope][FUNCTION_PARAM_COUNT] = len(paramTable)
-
-
-def p_addFunction1(p):
-    'addFunction1 :'
+def p_addFunction(p):
+    'addFunction :'
     global currentScope
     currentScope = p[-1]
-    functionDirectory[currentScope][FUNCTION_TYPE] = currentType
+    functionDirectory[currentScope] = currentType
     variableTable[currentScope] = {}
 
 
 def p_params(p):
-    'params : ids COLON type addFunction2 paramsPrime'
+    'params : ids COLON type addVars paramsPrime'
 
 
 def p_paramsPrime(p):
@@ -226,7 +187,7 @@ def p_statement(p):
 
 
 def p_assignment(p):
-    'assignment : ids2 EQUAL addOperator expression addAssignment SEMICOLON'
+    'assignment : ids2 EQUAL addOperator expression SEMICOLON'
     res = operandStack.pop()
     resType = typeStack.pop()
     leftSide = operandStack.pop()
@@ -330,7 +291,7 @@ def p_conditional(p):
 
 
 def p_nonConditional(p):
-    'nonConditional : FOR LPAREN ids2 EQUAL addOperator exp addFor1 COLON exp addFor2 RPAREN block addFor3'
+    'nonConditional : FOR LPAREN ids2 EQUAL exp COLON exp RPAREN block'
 
 
 def p_expression(p):
@@ -392,23 +353,6 @@ def p_popOperator(p):
 def p_addOperator(p):
     'addOperator :'
     operatorStack.push(p[-1])
-
-
-def p_addAssignment(p):
-    'addAssignment :'
-    res = operandStack.pop()
-    resType = typeStack.pop()
-    leftSide = operandStack.pop()
-    leftType = typeStack.pop()
-    operator = operatorStack.pop()
-    opType = semanticCube[(leftType, resType, operator)]
-    if (opType != "error"):
-        # esto estaba asi -> Quadruple(operator, None, res, leftSide)
-        quadruple = Quadruple(operator, res, None, leftSide)
-        quadruples.append(quadruple)
-    else:
-        # Create error message
-        raise SyntaxError
 
 
 def p_addAndOr(p):
@@ -566,75 +510,6 @@ def p_addWhile3(p):
                                 quadruples[end].leftOperand, None,
                                 len(quadruples))
 
-def p_addFor1(p):
-    'addFor1 :'
-    res = operandStack.pop()
-    resType = typeStack.pop()
-    leftSide = operandStack.pop()
-    leftType = typeStack.pop()
-    operator = operatorStack.pop()
-    if (resType == "int" and leftType == "int"):
-        quadruple = Quadruple(operator, res, None, leftSide)
-        quadruples.append(quadruple)
-        # Preparacion para hacer la suma a la variable cuando acabe el for
-        operandStack.push(leftSide)
-        typeStack.push(leftType)
-        operatorStack.push('+')
-        # Preparacion para hacer la comparacion aver si entra al for
-        operandStack.push(leftSide)
-        typeStack.push(leftType)
-        operatorStack.push('==')
-    else:
-        # Error for loops must be ints
-        raise SyntaxError
-
-
-def p_addFor2(p):
-    'addFor2 :'
-    operator = operatorStack.pop()
-    rightType = typeStack.pop()
-    leftType = typeStack.pop()
-    rightOperand = operandStack.pop()
-    leftOperand = operandStack.pop()
-    if rightType == 'int' and leftType == 'int':
-        result = next_avail()
-        quadruples.append(
-            Quadruple(operator, leftOperand, rightOperand, result))
-        jumpStack.push(len(quadruples) - 1)
-        quadrupleGotoF = Quadruple("GOTOF", result, None, None)
-        quadruples.append(quadrupleGotoF)
-        jumpStack.push(len(quadruples) - 1)
-        # if any operand were a temporal space return it to avail
-    else:
-        # Error for loops must be ints
-        raise SyntaxError
-
-
-def p_addFor3(p):
-    'addFor3 :'
-    operator = operatorStack.pop()
-    leftSide = operandStack.pop()
-    leftType = typeStack.pop()
-    rightSide = '1'
-    rightType = 'int'
-    resultType = semanticCube[(leftType, rightType, operator)]
-    if leftType == 'int':
-        result = next_avail()
-        quadruple = Quadruple(operator, leftSide, rightSide, result)
-        quadruples.append(quadruple)
-        quadrupleAssign = Quadruple('=', result, None, leftSide)
-        quadruples.append(quadrupleAssign)
-
-        end = jumpStack.pop()
-        ret = jumpStack.pop()
-        quadruple = Quadruple("GOTO", None, None, ret)
-        quadruples.append(quadruple)
-        quadruples[end] = Quadruple(quadruples[end].operator,
-                                    quadruples[end].leftOperand, None,
-                                    len(quadruples))
-    else:
-        # error for loops must be ints
-        raise SyntaxError
 
 def p_addFloat(p):
     'addFloat :'
@@ -659,6 +534,7 @@ def p_error(p):
     print("Syntax error at line %d, token=%s, value=%s col=%s" %
           (p.lineno, p.type, p.value, p.lexpos))
     exit()
+
 # Constructor del parser
 parser = yacc.yacc()
 
