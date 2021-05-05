@@ -177,9 +177,9 @@ def p_function(p):
     'function : returnType FUNCTION ID addFunction1 LPAREN params RPAREN addFunction3 vars addFunction4 block'
     global currentScope
     global temps
+    functionDirectory[currentScope][FUNCTION_TEMP_COUNT] = temps
     del variableTable[currentScope]
     currentScope = "global"
-    functionDirectory[currentScope][FUNCTION_TEMP_COUNT] = temps
     temps = 0
     quadruples.append(Quadruple("ENDFunc", None, None, None))
 
