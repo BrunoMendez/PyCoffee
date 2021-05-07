@@ -8,3 +8,5 @@ En nuestro segundo avance lograramos corregir todos los warnings que nos apareci
 En nuestro tercer avance logramos corregir algunos errores de la gramatica al igual que programamos la tabla de consideraciones semanticas, generacion de codigo de expresiones aritmeticas y los estatutos secuenciales. Al igual que avanzamos definiendo la pauta para los siguientes entregables a realizar.
 
 En el cuarto avance logramos agregar todo el codigo intermedio para los estatutos no-lineales for, while, if, if-else. También creamos un avail para guardar temporales y arreglamos bugs de entregas pasadas.
+
+En el quinto avance logramos agregar todo el codigo intermedio para llamar a funciones void y declarar funciones void. Tambien realizamos unos cambios al parser para poder agregar lo desarrollado correctamente.

@@ -23,7 +23,8 @@ variableTable = {}
 paramTable = {}
 varIds = Queue()
 currentType = ""
-
+checkFunction = False
+paramCounter = 0
 operatorStack = Stack()
 operandStack = Stack()
 typeStack = Stack()
@@ -44,19 +45,22 @@ def next_avail():
 
 # Toma precedencia ( sobre ID para no reducir ID cuando llamamos una funcion.
 precedence = (
-    ('right', 'ID', 'LPAREN'),
+    ('right', 'ID'),
     ('nonassoc', 'LPAREN'),
 )
 
 
 # Definicion de reglas de la gramatica
 def p_program(p):
-    'program : PROGRAM ID createGlobalTables SEMICOLON vars functions MAIN LPAREN RPAREN block'
+    'program : PROGRAM ID createGlobalTables SEMICOLON vars functions MAIN LPAREN RPAREN mainStart block'
     print(variableTable)
     print(functionDirectory)
     for quadruple in quadruples:
         print(quadruple)
-
+    print(paramTable)
+def p_mainStart(p):
+    'mainStart :'
+    quadruples[0].result = len(quadruples)
 
 def p_createGlobalTables(p):
     'createGlobalTables : '
@@ -69,6 +73,8 @@ def p_createGlobalTables(p):
         FUNCTION_TEMP_COUNT: 0
     }
     variableTable[currentScope] = {}
+    quad = Quadruple("GOTOMAIN", None, None, None)
+    quadruples.append(quad)
 
 
 def p_vars(p):
@@ -132,9 +138,12 @@ def p_addId(p):
     'addId :'
     varIds.enqueue(p[-1])
 
-
+def p_checkIfNotFunction(p):
+    'checkIfNotFunction :'
+    if checkFunction:
+        raise VarNotDefined
 def p_ids2(p):
-    '''ids2 : ID addIdToStack
+    '''ids2 : ID addIdToStack checkIfNotFunction
             | ID arrPos'''
 
 
@@ -147,6 +156,11 @@ def p_addIdToStack(p):
         operandStack.push(varId)
     elif (varId in variableTable[GLOBAL_SCOPE]):
         typeStack.push(variableTable[GLOBAL_SCOPE][varId]["type"])
+        operandStack.push(varId)
+    elif varId in functionDirectory:
+        global checkFunction
+        checkFunction = True
+        typeStack.push(functionDirectory[varId]["type"])
         operandStack.push(varId)
     else:
         raise VarNotDefined
@@ -249,12 +263,6 @@ def p_writePrime(p):
     '''writePrime : expression printExpression writePrimePrime
                     | CST_STRING printString writePrimePrime'''
 
-
-def p_debug(p):
-    'debug :'
-    print("@@@")
-
-
 def p_printExpression(p):
     'printExpression :'
     quadruple = Quadruple(operatorStack.pop(), None, None, operandStack.pop())
@@ -273,21 +281,65 @@ def p_writePrimePrime(p):
 
 
 def p_callVoidF(p):
-    'callVoidF : ID callFunction SEMICOLON'
+    'callVoidF : ID addIdToStack callFunction SEMICOLON'
 
 
 def p_callFunction(p):
-    '''callFunction : LPAREN expressions RPAREN'''
+    '''callFunction : LPAREN callVoidF1 expressions RPAREN callVoidF4'''
 
 
+def p_callVoidF1(p):
+    'callVoidF1 :'
+    global checkFunction
+    if checkFunction:
+        checkFunction = False
+        # Esto es temporal hasta tener memoria
+        quad = Quadruple('ERA', None, None, None)
+        quadruples.append(quad)
+        global paramCounter
+        # este elda lo puso como 1 -- si tenemos problemas despues puede ser esto
+        paramCounter = 0
+    else:
+        raise FunctionNotDeclared
+def p_callVoidF2(p):
+    'callVoidF2 :'
+    argument = operandStack.pop()
+    argumentType = typeStack.pop()
+    function_id = operandStack.pop()
+    function_type = typeStack.pop()
+    keys_list = list(paramTable[function_id])
+    key = keys_list[paramCounter]
+    if argumentType == paramTable[function_id][key]['type']:
+        operandStack.push(function_id)
+        typeStack.push(function_type)
+        quad = Quadruple('PARAMETER', argument, paramCounter, None)
+        quadruples.append(quad)
+    else:
+        raise TypeMismatchError
+def p_callVoidF3(p):
+    'callVoidF3 :'
+    global paramCounter
+    paramCounter = paramCounter + 1
+def p_callVoidF4(p):
+    'callVoidF4 :'
+    global paramCounter
+    function_id = operandStack.pop()
+    typeStack.pop()
+    if paramCounter + 1 == len(paramTable[function_id]):
+        quad = Quadruple('GOSUB', function_id, None, functionDirectory[function_id][FUNCTION_QUAD_INDEX])
+        quadruples.append(quad)
+    else:
+        raise InvalidParamNum
+      
 def p_expressions(p):
-    '''expressions : expression expressionsPrime 
+    '''expressions : expression callVoidF2 expressionsPrime 
                 |'''
 
 
 def p_expressionsPrime(p):
-    '''expressionsPrime : COMA expression expressionsPrime 
+    '''expressionsPrime : COMA callVoidF3 expressions 
                         |'''
+
 
 
 def p_return(p):
@@ -384,9 +436,10 @@ def p_varCst(p):
 
 
 def p_callableCst(p):
-    '''callableCst : ID addIdToStack
-                |  ID callFunction
+    '''callableCst : ID addIdToStack checkIfNotFunction
+                |  ID addIdToStack callFunction
                 | ID arrPos'''
+
 
 
 def p_popOperator(p):

@@ -21,3 +21,18 @@ class VarNotDefined(Exception):
 
     def __str__(self):
         return self.message
+
+class FunctionNotDeclared(Exception):  
+    def __init__(self, message="Function not declared"):
+        self.message = message
+        super().__init__(self.message)
+
+    def __str__(self):
+        return self.message
+class InvalidParamNum(Exception):  
+    def __init__(self, message="Invalid parameters number"):
+        self.message = message
+        super().__init__(self.message)
+
+    def __str__(self):
+        return self.message
