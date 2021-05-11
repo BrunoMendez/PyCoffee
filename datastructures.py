@@ -64,7 +64,8 @@ operator = [
 for i in types:  # Left operand
     for j in types:  # Right operand
         for k in operator:  # Operators
-            if (i == "error" or j == "error"):
+            if (i == "error" or j == "error" or i == None or j == None
+                    or k == None):
                 semanticCube[(i, j, k)] = "error"
             elif (i == "int" and j == "int"):
                 semanticCube[(i, j, k)] = "int"

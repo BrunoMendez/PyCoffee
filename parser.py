@@ -17,6 +17,13 @@ FUNCTION_VAR_COUNT = "varCount"
 FUNCTION_TEMP_COUNT = "tempCount"
 FUNCTION_QUAD_INDEX = "quadIndex"
 GLOBAL_SCOPE = "global"
+GOTO = "GOTO"
+END_FUNC = "ENDFunc"
+ERA = "ERA"
+GOTOF = "GOTOF"
+GOSUB = "GOSUB"
+PARAMETER = "PARAMETER"
+RETURN = "RETURN"
 currentScope = GLOBAL_SCOPE
 functionDirectory = {}
 variableTable = {}
@@ -24,6 +31,7 @@ paramTable = {}
 varIds = Queue()
 currentType = ""
 checkFunction = False
+hasReturn = False
 paramCounter = 0
 operatorStack = Stack()
 operandStack = Stack()
@@ -32,6 +40,9 @@ jumpStack = Stack()
 forStack = Stack()
 quadruples = []
 temps = 0
+function_id = ""
+function_type = ""
+
 # changes on quadruples better to have it as a list for simplicity
 
 # definition of avail
@@ -53,14 +64,23 @@ precedence = (
 # Definicion de reglas de la gramatica
 def p_program(p):
     'program : PROGRAM ID createGlobalTables SEMICOLON vars functions MAIN LPAREN RPAREN mainStart block'
+    functionDirectory[GLOBAL_SCOPE][FUNCTION_TEMP_COUNT] = temps
     print(variableTable)
     print(functionDirectory)
     for quadruple in quadruples:
         print(quadruple)
     print(paramTable)
+    print(typeStack)
+    print(operandStack)
+
+
 def p_mainStart(p):
     'mainStart :'
     quadruples[0].result = len(quadruples)
+    functionDirectory[GLOBAL_SCOPE][FUNCTION_QUAD_INDEX] = len(quadruples)
+    functionDirectory[GLOBAL_SCOPE][FUNCTION_VAR_COUNT] = len(
+        variableTable[GLOBAL_SCOPE])
+
 
 def p_createGlobalTables(p):
     'createGlobalTables : '
@@ -73,7 +93,7 @@ def p_createGlobalTables(p):
         FUNCTION_TEMP_COUNT: 0
     }
     variableTable[currentScope] = {}
-    quad = Quadruple("GOTOMAIN", None, None, None)
+    quad = Quadruple(GOTO, "main", None, None)
     quadruples.append(quad)
 
 
@@ -138,10 +158,13 @@ def p_addId(p):
     'addId :'
     varIds.enqueue(p[-1])
 
+
 def p_checkIfNotFunction(p):
     'checkIfNotFunction :'
     if checkFunction:
         raise VarNotDefined
+
+
 def p_ids2(p):
     '''ids2 : ID addIdToStack checkIfNotFunction
             | ID arrPos'''
@@ -151,16 +174,16 @@ def p_addIdToStack(p):
     'addIdToStack :'
     # manejar arrays
     varId = p[-1]
-    if (varId in variableTable[currentScope]):
+    if varId in functionDirectory:
+        global checkFunction
+        checkFunction = True
+        typeStack.push(functionDirectory[varId]["type"])
+        operandStack.push(varId)
+    elif (varId in variableTable[currentScope]):
         typeStack.push(variableTable[currentScope][varId]["type"])
         operandStack.push(varId)
     elif (varId in variableTable[GLOBAL_SCOPE]):
         typeStack.push(variableTable[GLOBAL_SCOPE][varId]["type"])
-        operandStack.push(varId)
-    elif varId in functionDirectory:
-        global checkFunction
-        checkFunction = True
-        typeStack.push(functionDirectory[varId]["type"])
         operandStack.push(varId)
     else:
         raise VarNotDefined
@@ -195,7 +218,10 @@ def p_function(p):
     del variableTable[currentScope]
     currentScope = "global"
     temps = 0
-    quadruples.append(Quadruple("ENDFunc", None, None, None))
+    if (function_type != 'void' and (not hasReturn)):
+        raise NonVoidFuncReturnMissing
+    elif not hasReturn and function_type == 'void':
+        quadruples.append(Quadruple(END_FUNC, None, None, None))
 
 
 def p_addFunction4(p):
@@ -213,12 +239,22 @@ def p_addFunction3(p):
 
 def p_addFunction1(p):
     'addFunction1 :'
+    global hasReturn
     global currentScope
+    global function_id
+    global function_type
+    hasReturn = False
     currentScope = p[-1]
     paramTable[currentScope] = {}
     functionDirectory[currentScope] = {}
     functionDirectory[currentScope][FUNCTION_TYPE] = currentType
     variableTable[currentScope] = {}
+    function_id = currentScope
+    function_type = currentType
+    if (function_type != 'void'):
+        if (function_id in variableTable[GLOBAL_SCOPE]):
+            raise VarAlreadyInTable
+        variableTable[GLOBAL_SCOPE][function_id] = {'type': function_type}
 
 
 def p_params(p):
@@ -263,14 +299,17 @@ def p_writePrime(p):
     '''writePrime : expression printExpression writePrimePrime
                     | CST_STRING printString writePrimePrime'''
 
+
 def p_printExpression(p):
     'printExpression :'
+    typeStack.pop()
     quadruple = Quadruple(operatorStack.pop(), None, None, operandStack.pop())
     quadruples.append(quadruple)
 
 
 def p_printString(p):
     'printString :'
+    typeStack.pop()
     quadruple = Quadruple(operatorStack.pop(), None, None, p[-1])
     quadruples.append(quadruple)
 
@@ -285,65 +324,87 @@ def p_callVoidF(p):
 
 
 def p_callFunction(p):
-    '''callFunction : LPAREN callVoidF1 expressions RPAREN callVoidF4'''
+    '''callFunction : LPAREN callFunction1 expressions RPAREN callFunction4'''
 
 
-def p_callVoidF1(p):
-    'callVoidF1 :'
+def p_callFunction1(p):
+    'callFunction1 :'
     global checkFunction
     if checkFunction:
         checkFunction = False
-        # Esto es temporal hasta tener memoria
-        quad = Quadruple('ERA', None, None, None)
+        function_id = operandStack.top()
+        # Esto es temporal hasta tener memoria, le tenemos que pasar la cantidad de vars.
+        quad = Quadruple(ERA, function_id, None, None)
         quadruples.append(quad)
         global paramCounter
         # este elda lo puso como 1 -- si tenemos problemas despues puede ser esto
         paramCounter = 0
     else:
         raise FunctionNotDeclared
-def p_callVoidF2(p):
-    'callVoidF2 :'
+
+
+def p_callFunction2(p):
+    'callFunction2 :'
     argument = operandStack.pop()
     argumentType = typeStack.pop()
-    function_id = operandStack.pop()
-    function_type = typeStack.pop()
+    function_id = operandStack.top()
     keys_list = list(paramTable[function_id])
     key = keys_list[paramCounter]
     if argumentType == paramTable[function_id][key]['type']:
-        operandStack.push(function_id)
-        typeStack.push(function_type)
-        quad = Quadruple('PARAMETER', argument, paramCounter, None)
+        quad = Quadruple(PARAMETER, argument, paramCounter, None)
         quadruples.append(quad)
     else:
         raise TypeMismatchError
-def p_callVoidF3(p):
-    'callVoidF3 :'
+
+
+def p_callFunction3(p):
+    'callFunction3 :'
     global paramCounter
     paramCounter = paramCounter + 1
-def p_callVoidF4(p):
-    'callVoidF4 :'
+
+
+def p_callFunction4(p):
+    'callFunction4 :'
     global paramCounter
     function_id = operandStack.pop()
     typeStack.pop()
     if paramCounter + 1 == len(paramTable[function_id]):
-        quad = Quadruple('GOSUB', function_id, None, functionDirectory[function_id][FUNCTION_QUAD_INDEX])
+        result = next_avail()
+        quad = Quadruple(GOSUB, function_id, None,
+                         functionDirectory[function_id][FUNCTION_QUAD_INDEX])
         quadruples.append(quad)
+        if functionDirectory[function_id][FUNCTION_TYPE] != "void":
+            assignQuad = Quadruple('=', function_id, None, result)
+            quadruples.append(assignQuad)
+            operandStack.push(result)
+            typeStack.push(functionDirectory[function_id][FUNCTION_TYPE])
     else:
         raise InvalidParamNum
-      
+
+
 def p_expressions(p):
-    '''expressions : expression callVoidF2 expressionsPrime 
+    '''expressions : expression callFunction2 expressionsPrime 
                 |'''
 
 
 def p_expressionsPrime(p):
-    '''expressionsPrime : COMA callVoidF3 expressions 
+    '''expressionsPrime : COMA callFunction3 expressions 
                         |'''
-
 
 
 def p_return(p):
     'return : RETURN LPAREN expression RPAREN SEMICOLON'
+    global hasReturn
+    hasReturn = True
+    result = operandStack.pop()
+    res_type = typeStack.pop()
+    if (res_type != variableTable[GLOBAL_SCOPE][function_id]['type']):
+        raise TypeMismatchError
+    else:
+        quadruple = Quadruple(RETURN, None, None, result)
+        quadEndfunc = Quadruple(END_FUNC, None, None, None)
+        quadruples.append(quadruple)
+        quadruples.append(quadEndfunc)
 
 
 def p_read(p):
@@ -358,7 +419,6 @@ def p_readVar(p):
     'readVar :'
     var = operandStack.pop()
     typeStack.pop()
-    print(var)
     quadruple = Quadruple(operatorStack.pop(), None, None, var)
     quadruples.append(quadruple)
 
@@ -439,7 +499,6 @@ def p_callableCst(p):
     '''callableCst : ID addIdToStack checkIfNotFunction
                 |  ID addIdToStack callFunction
                 | ID arrPos'''
-
 
 
 def p_popOperator(p):
@@ -573,7 +632,7 @@ def p_addIf1(p):
     if exp_type != 'int':
         raise TypeMismatchError
     else:
-        quadruple = Quadruple("GOTOF", result, None, None)
+        quadruple = Quadruple(GOTOF, result, None, None)
         quadruples.append(quadruple)
         jumpStack.push(len(quadruples) - 1)
 
@@ -589,10 +648,10 @@ def p_addIf2(p):
 def p_addIf3(p):
     'addIf3 : '
     false = jumpStack.pop()
-    quadruple = Quadruple("GOTO", None, None, None)
+    quadruple = Quadruple(GOTO, None, None, None)
     quadruples.append(quadruple)
     jumpStack.push(len(quadruples) - 1)
-    quadruples[false] = Quadruple("GOTOF", quadruples[false].leftOperand, None,
+    quadruples[false] = Quadruple(GOTOF, quadruples[false].leftOperand, None,
                                   len(quadruples))
 
 
@@ -609,7 +668,7 @@ def p_addWhile2(p):
         # Logica de manejo de errors
         raise TypeMismatchError
     else:
-        quadruple = Quadruple("GOTOF", result, None, None)
+        quadruple = Quadruple(GOTOF, result, None, None)
         quadruples.append(quadruple)
         jumpStack.push(len(quadruples) - 1)
 
@@ -618,7 +677,7 @@ def p_addWhile3(p):
     'addWhile3 : '
     end = jumpStack.pop()
     ret = jumpStack.pop()
-    quadruple = Quadruple("GOTO", None, None, ret)
+    quadruple = Quadruple(GOTO, None, None, ret)
     quadruples.append(quadruple)
     quadruples[end] = Quadruple(quadruples[end].operator,
                                 quadruples[end].leftOperand, None,
@@ -660,7 +719,7 @@ def p_addFor2(p):
         quadruples.append(
             Quadruple(operator, leftOperand, rightOperand, result))
         jumpStack.push(len(quadruples) - 1)
-        quadrupleGotoF = Quadruple("GOTOF", result, None, None)
+        quadrupleGotoF = Quadruple(GOTOF, result, None, None)
         quadruples.append(quadrupleGotoF)
         jumpStack.push(len(quadruples) - 1)
         # if any operand were a temporal space return it to avail
@@ -686,7 +745,7 @@ def p_addFor3(p):
 
         end = jumpStack.pop()
         ret = jumpStack.pop()
-        quadruple = Quadruple("GOTO", None, None, ret)
+        quadruple = Quadruple(GOTO, None, None, ret)
         quadruples.append(quadruple)
         quadruples[end] = Quadruple(quadruples[end].operator,
                                     quadruples[end].leftOperand, None,
