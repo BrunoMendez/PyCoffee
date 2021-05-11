@@ -55,7 +55,7 @@ class Queue:
 
 semanticCube = {}
 
-types = ["error", "int", "float", "char"]
+types = ["error", "int", "float", "char", None]
 
 operator = [
     "+", "-", "*", "/", ">", "<", ">=", "<=", "==", "<>", "and", "or", "="

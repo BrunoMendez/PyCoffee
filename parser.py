@@ -8,7 +8,7 @@ import sys
 import lexer
 from errors import *
 from datastructures import *
-
+from memory import *
 tokens = lexer.tokens
 
 FUNCTION_TYPE = "type"
@@ -17,6 +17,8 @@ FUNCTION_VAR_COUNT = "varCount"
 FUNCTION_TEMP_COUNT = "tempCount"
 FUNCTION_QUAD_INDEX = "quadIndex"
 GLOBAL_SCOPE = "global"
+LOCAL_SCOPE = "local"
+TEMPORAL_SCOPE = "temporal"
 GOTO = "GOTO"
 END_FUNC = "ENDFunc"
 ERA = "ERA"
@@ -39,7 +41,6 @@ typeStack = Stack()
 jumpStack = Stack()
 forStack = Stack()
 quadruples = []
-temps = 0
 function_id = ""
 function_type = ""
 
@@ -47,12 +48,31 @@ function_type = ""
 
 # definition of avail
 
-
-def next_avail():
-    global temps
-    temps = temps + 1
-    return "t" + str(temps)
-
+def convert_type(idType, scope):
+    if idType == "void":
+        return VOID
+    if scope == GLOBAL_SCOPE:
+        if idType == 'int':
+            return GLOBAL_INT
+        if idType == 'float':
+            return GLOBAL_FLOAT
+        if idType == 'char':
+            return GLOBAL_CHAR
+    if scope == LOCAL_SCOPE:
+        if idType == 'int':
+            return LOCAL_INT
+        if idType == 'float':
+            return LOCAL_FLOAT
+        if idType == 'char':
+            return LOCAL_CHAR
+    if scope == TEMPORAL_SCOPE:
+        if idType == 'int':
+            return TEMPORAL_INT
+        if idType == 'float':
+            return TEMPORAL_FLOAT
+        if idType == 'char':
+            return TEMPORAL_CHAR
+    raise InvalidType
 
 # Toma precedencia ( sobre ID para no reducir ID cuando llamamos una funcion.
 precedence = (
@@ -64,7 +84,7 @@ precedence = (
 # Definicion de reglas de la gramatica
 def p_program(p):
     'program : PROGRAM ID createGlobalTables SEMICOLON vars functions MAIN LPAREN RPAREN mainStart block'
-    functionDirectory[GLOBAL_SCOPE][FUNCTION_TEMP_COUNT] = temps
+    functionDirectory[GLOBAL_SCOPE][FUNCTION_TEMP_COUNT] = resetTemporals()
     print(variableTable)
     print(functionDirectory)
     for quadruple in quadruples:
@@ -179,12 +199,17 @@ def p_addIdToStack(p):
         checkFunction = True
         typeStack.push(functionDirectory[varId]["type"])
         operandStack.push(varId)
-    elif (varId in variableTable[currentScope]):
-        typeStack.push(variableTable[currentScope][varId]["type"])
-        operandStack.push(varId)
+        """ function_type = functionDirectory[varId]["type"]
+        typeStack.push(function_type)
+        operandStack.push(getNextAddress(convert_type(function_type, GLOBAL_SCOPE))) """
     elif (varId in variableTable[GLOBAL_SCOPE]):
-        typeStack.push(variableTable[GLOBAL_SCOPE][varId]["type"])
-        operandStack.push(varId)
+        varType = variableTable[GLOBAL_SCOPE][varId]["type"]
+        typeStack.push(varType)
+        operandStack.push(getNextAddress(convert_type(varType, GLOBAL_SCOPE)))
+    elif (varId in variableTable[currentScope]):
+        varType = variableTable[currentScope][varId]["type"]
+        typeStack.push(varType)
+        operandStack.push(getNextAddress(convert_type(varType, LOCAL_SCOPE)))
     else:
         raise VarNotDefined
 
@@ -213,11 +238,9 @@ def p_returnType(p):
 def p_function(p):
     'function : returnType FUNCTION ID addFunction1 LPAREN params RPAREN addFunction3 vars addFunction4 block'
     global currentScope
-    global temps
-    functionDirectory[currentScope][FUNCTION_TEMP_COUNT] = temps
+    functionDirectory[currentScope][FUNCTION_TEMP_COUNT] = resetTemporals()
     del variableTable[currentScope]
     currentScope = "global"
-    temps = 0
     if (function_type != 'void' and (not hasReturn)):
         raise NonVoidFuncReturnMissing
     elif not hasReturn and function_type == 'void':
@@ -367,9 +390,9 @@ def p_callFunction4(p):
     'callFunction4 :'
     global paramCounter
     function_id = operandStack.pop()
-    typeStack.pop()
+    idType = typeStack.pop()
     if paramCounter + 1 == len(paramTable[function_id]):
-        result = next_avail()
+        result = getNextAddress(convert_type(idType, TEMPORAL_SCOPE))
         quad = Quadruple(GOSUB, function_id, None,
                          functionDirectory[function_id][FUNCTION_QUAD_INDEX])
         quadruples.append(quad)
@@ -538,7 +561,7 @@ def p_addAndOr(p):
         leftOperand = operandStack.pop()
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != 'error':
-            result = next_avail()
+            result = getNextAddress(convert_type(resultType, TEMPORAL_SCOPE))
             quadruples.append(
                 Quadruple(operator, leftOperand, rightOperand, result))
             operandStack.push(result)
@@ -555,7 +578,7 @@ def p_addNot(p):
         opType = typeStack.pop()
         operand = operandStack.pop()
         if (opType == 'int'):
-            result = next_avail()
+            result = getNextAddress(convert_type(opType, TEMPORAL_SCOPE))
             quadruples.append(Quadruple(operator, operand, None, result))
             operandStack.push(result)
             typeStack.push('int')
@@ -574,7 +597,7 @@ def p_addExp(p):
         leftOperand = operandStack.pop()
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != 'error':
-            result = next_avail()
+            result = getNextAddress(convert_type(resultType, TEMPORAL_SCOPE))
             quadruples.append(
                 Quadruple(operator, leftOperand, rightOperand, result))
             operandStack.push(result)
@@ -594,7 +617,7 @@ def p_addTerm(p):
         leftOperand = operandStack.pop()
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != 'error':
-            result = next_avail()
+            result = getNextAddress(convert_type(resultType, TEMPORAL_SCOPE))
             quadruple = Quadruple(operator, leftOperand, rightOperand, result)
             quadruples.append(quadruple)
             operandStack.push(result)
@@ -614,7 +637,7 @@ def p_addFactor(p):
         leftOperand = operandStack.pop()
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != 'error':
-            result = next_avail()
+            result = getNextAddress(convert_type(resultType, TEMPORAL_SCOPE))
             quadruple = Quadruple(operator, leftOperand, rightOperand, result)
             quadruples.append(quadruple)
             operandStack.push(result)
@@ -715,7 +738,7 @@ def p_addFor2(p):
     rightOperand = operandStack.pop()
     leftOperand = operandStack.pop()
     if rightType == 'int' and leftType == 'int':
-        result = next_avail()
+        result = getNextAddress(TEMPORAL_INT)
         quadruples.append(
             Quadruple(operator, leftOperand, rightOperand, result))
         jumpStack.push(len(quadruples) - 1)
@@ -737,7 +760,7 @@ def p_addFor3(p):
     rightType = 'int'
     resultType = semanticCube[(leftType, rightType, operator)]
     if leftType == 'int':
-        result = next_avail()
+        result = getNextAddress(convert_type(resultType, TEMPORAL_SCOPE))
         quadruple = Quadruple(operator, leftSide, rightSide, result)
         quadruples.append(quadruple)
         quadrupleAssign = Quadruple('=', result, None, leftSide)
@@ -758,19 +781,22 @@ def p_addFor3(p):
 # getConvertedOperant is not necessary now!
 def p_addFloat(p):
     'addFloat :'
-    operandStack.push(p[-1])
+    address = getNextAddress(CONSTANT_FLOAT)
+    operandStack.push(address)
     typeStack.push('float')
 
 
 def p_addInt(p):
     'addInt :'
-    operandStack.push(p[-1])
+    address = getNextAddress(CONSTANT_INT)
+    operandStack.push(address)
     typeStack.push('int')
 
 
 def p_addChar(p):
     'addChar :'
-    operandStack.push(p[-1])
+    address = getNextAddress(CONSTANT_CHAR)
+    operandStack.push(address)
     typeStack.push('char')
 
 
