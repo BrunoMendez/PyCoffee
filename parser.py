@@ -819,11 +819,18 @@ CORS(app)
 
 @app.route('/compile', methods=["POST"])
 def compile():
-    print (request.is_json)
     content = request.get_json()
-    print (content['codigo'])
+    # Here we will pass to the vm 
+    # and return the result of the vm to the front
     resultParsed = parser.parse(content['codigo'])
-    print(resultParsed)
-    return 'JSON posted'
+    print(content['codigo'])
+    size = [i for i in range(0, len(quadruples) - 1)]
+    print(size)
+    lista = []
+    for element in quadruples:
+        lista.append(element.generateLista())
+    quadDict = dict(zip(size, lista))
+    print(quadDict)
+    return quadDict
 if __name__ == '__main__':
     app.run(debug=True)
