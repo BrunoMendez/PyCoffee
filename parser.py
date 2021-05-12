@@ -374,7 +374,7 @@ def p_callFunction2(p):
     keys_list = list(paramTable[function_id])
     key = keys_list[paramCounter]
     if argumentType == paramTable[function_id][key]['type']:
-        quad = Quadruple(PARAMETER, argument, paramCounter, None)
+        quad = Quadruple(PARAMETER, argument, None, paramCounter)
         quadruples.append(quad)
     else:
         raise TypeMismatchError
