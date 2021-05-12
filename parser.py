@@ -10,7 +10,9 @@ from errors import *
 from datastructures import *
 from memory import *
 tokens = lexer.tokens
-
+from flask import Flask, request
+from flask_cors import CORS
+from flask import jsonify
 FUNCTION_TYPE = "type"
 FUNCTION_PARAM_COUNT = "paramCount"
 FUNCTION_VAR_COUNT = "varCount"
@@ -89,10 +91,6 @@ def p_program(p):
     print(functionDirectory)
     for quadruple in quadruples:
         print(quadruple)
-    print(paramTable)
-    print(typeStack)
-    print(operandStack)
-
 
 def p_mainStart(p):
     'mainStart :'
@@ -374,7 +372,7 @@ def p_callFunction2(p):
     keys_list = list(paramTable[function_id])
     key = keys_list[paramCounter]
     if argumentType == paramTable[function_id][key]['type']:
-        quad = Quadruple(PARAMETER, argument, paramCounter, None)
+        quad = Quadruple(PARAMETER, argument, None, paramCounter)
         quadruples.append(quad)
     else:
         raise TypeMismatchError
@@ -816,5 +814,16 @@ f = open(filename, "r")
 
 # parsear archivo
 result = parser.parse(f.read())
+app = Flask(__name__)
+CORS(app)
 
-# print(result)
+@app.route('/compile', methods=["POST"])
+def compile():
+    print (request.is_json)
+    content = request.get_json()
+    print (content['codigo'])
+    resultParsed = parser.parse(content['codigo'])
+    print(resultParsed)
+    return 'JSON posted'
+if __name__ == '__main__':
+    app.run(debug=True)
