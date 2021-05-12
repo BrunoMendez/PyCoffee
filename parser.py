@@ -816,7 +816,12 @@ f = open(filename, "r")
 result = parser.parse(f.read())
 app = Flask(__name__)
 CORS(app)
-
+print('////', len(quadruples))
+size = [i for i in range(0, len(quadruples))]
+lista = []
+for element in quadruples:
+    lista.append(element.generateLista())
+quadDict = dict(zip(size, lista))
 @app.route('/compile', methods=["POST"])
 def compile():
     content = request.get_json()
@@ -824,12 +829,6 @@ def compile():
     # and return the result of the vm to the front
     resultParsed = parser.parse(content['codigo'])
     print(content['codigo'])
-    size = [i for i in range(0, len(quadruples) - 1)]
-    print(size)
-    lista = []
-    for element in quadruples:
-        lista.append(element.generateLista())
-    quadDict = dict(zip(size, lista))
     print(quadDict)
     return quadDict
 if __name__ == '__main__':
