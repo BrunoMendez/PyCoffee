@@ -1,8 +1,5 @@
 program test_PyCoffe;
-var
-    i,j,p,age: int;
-    x: float;
-    name[30]: char;
+var i,j,p,age: int; x: float; name[30]: char;
 
 int function fact(j: int)
 var i: int;

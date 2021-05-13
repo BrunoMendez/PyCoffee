@@ -111,3 +111,6 @@ class Quadruple():
     def __str__(self):
         return (str(self.operator) + " " + str(self.leftOperand) + " " +
                 str(self.rightOperand) + " " + str(self.result))
+    
+    def generateLista(self):
+        return [self.operator, self.leftOperand, self.rightOperand, self.result]

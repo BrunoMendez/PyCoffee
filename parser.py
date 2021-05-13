@@ -11,7 +11,9 @@ from datastructures import *
 from memory import *
 
 tokens = lexer.tokens
-
+from flask import Flask, request
+from flask_cors import CORS
+from flask import jsonify
 FUNCTION_TYPE = "type"
 FUNCTION_PARAM_COUNT = "paramCount"
 FUNCTION_VAR_COUNT = "varCount"
@@ -837,6 +839,24 @@ filename = sys.argv[-1]
 f = open(filename, "r")
 
 # parsear archivo
-result = parser.parse(f.read())
-
-# print(result)
+app = Flask(__name__)
+CORS(app)
+@app.route('/compile', methods=["POST"])
+def compile():
+    content = request.get_json()
+    quadDict = {}
+    size = []
+    # Here we will pass to the vm 
+    # and return the result of the vm to the front
+    result = parser.parse(content['codigo'])
+    print('////', len(quadruples))
+    size = [i for i in range(0, len(quadruples))]
+    lista = []
+    for element in quadruples:
+        lista.append(element.generateLista())
+    quadDict = dict(zip(size, lista))
+    print(content['codigo'])
+    print(quadDict)
+    return quadDict
+if __name__ == '__main__':
+    app.run(debug=True)
