@@ -9,6 +9,7 @@ import lexer
 from errors import *
 from datastructures import *
 from memory import *
+
 tokens = lexer.tokens
 
 FUNCTION_TYPE = "type"
@@ -26,6 +27,7 @@ GOTOF = "GOTOF"
 GOSUB = "GOSUB"
 PARAMETER = "PARAMETER"
 RETURN = "RETURN"
+END_PROG = "ENDPROG"
 currentScope = GLOBAL_SCOPE
 functionDirectory = {}
 variableTable = {}
@@ -44,9 +46,6 @@ quadruples = []
 function_id = ""
 function_type = ""
 
-# changes on quadruples better to have it as a list for simplicity
-
-# definition of avail
 
 def convert_type(idType, scope):
     if idType == "void":
@@ -74,6 +73,7 @@ def convert_type(idType, scope):
             return TEMPORAL_CHAR
     raise InvalidType
 
+
 # Toma precedencia ( sobre ID para no reducir ID cuando llamamos una funcion.
 precedence = (
     ('right', 'ID'),
@@ -85,21 +85,23 @@ precedence = (
 def p_program(p):
     'program : PROGRAM ID createGlobalTables SEMICOLON vars functions MAIN LPAREN RPAREN mainStart block'
     functionDirectory[GLOBAL_SCOPE][FUNCTION_TEMP_COUNT] = resetTemporals()
+    functionDirectory[GLOBAL_SCOPE][FUNCTION_VAR_COUNT] = len(
+        variableTable[GLOBAL_SCOPE])
+    endQuad = Quadruple(END_PROG, None, None, None)
+    quadruples.append(endQuad)
     print(variableTable)
     print(functionDirectory)
     for quadruple in quadruples:
         print(quadruple)
     print(paramTable)
-    print(typeStack)
-    print(operandStack)
+    print("Type stack: ", typeStack)
+    print("Operand stack: ", operandStack)
 
 
 def p_mainStart(p):
     'mainStart :'
     quadruples[0].result = len(quadruples)
     functionDirectory[GLOBAL_SCOPE][FUNCTION_QUAD_INDEX] = len(quadruples)
-    functionDirectory[GLOBAL_SCOPE][FUNCTION_VAR_COUNT] = len(
-        variableTable[GLOBAL_SCOPE])
 
 
 def p_createGlobalTables(p):
@@ -132,12 +134,20 @@ def p_addVars(p):
     while not varIds.empty():
         var = varIds.dequeue()
         if (var in variableTable[currentScope]):
-            # Variable already defined error
-            #print("var already in table")
             raise VarAlreadyInTable
             exit()
         else:
-            variableTable[currentScope][var] = {"type": currentType}
+            address = ""
+            if (currentScope == GLOBAL_SCOPE):
+                address = getNextAddress(
+                    convert_type(currentType, GLOBAL_SCOPE))
+            else:
+                address = getNextAddress(convert_type(currentType,
+                                                      LOCAL_SCOPE))
+            variableTable[currentScope][var] = {
+                "type": currentType,
+                "address": address
+            }
 
 
 def p_addFunction2(p):
@@ -145,12 +155,14 @@ def p_addFunction2(p):
     while not varIds.empty():
         var = varIds.dequeue()
         if (var in variableTable[currentScope]):
-            # Variable already defined error
-            #print("var already in table")
             raise VarAlreadyInTable
             exit()
         else:
-            variableTable[currentScope][var] = {"type": currentType}
+            variableTable[currentScope][var] = {
+                "type": currentType,
+                "address":
+                getNextAddress(convert_type(currentType, LOCAL_SCOPE))
+            }
             paramTable[currentScope][var] = {"type": currentType}
 
 
@@ -202,14 +214,15 @@ def p_addIdToStack(p):
         """ function_type = functionDirectory[varId]["type"]
         typeStack.push(function_type)
         operandStack.push(getNextAddress(convert_type(function_type, GLOBAL_SCOPE))) """
-    elif (varId in variableTable[GLOBAL_SCOPE]):
-        varType = variableTable[GLOBAL_SCOPE][varId]["type"]
-        typeStack.push(varType)
-        operandStack.push(getNextAddress(convert_type(varType, GLOBAL_SCOPE)))
+        # Cambiar order global local
     elif (varId in variableTable[currentScope]):
         varType = variableTable[currentScope][varId]["type"]
         typeStack.push(varType)
-        operandStack.push(getNextAddress(convert_type(varType, LOCAL_SCOPE)))
+        operandStack.push(variableTable[currentScope][varId]["address"])
+    elif (varId in variableTable[GLOBAL_SCOPE]):
+        varType = variableTable[GLOBAL_SCOPE][varId]["type"]
+        typeStack.push(varType)
+        operandStack.push(variableTable[GLOBAL_SCOPE][varId]["address"])
     else:
         raise VarNotDefined
 
@@ -239,6 +252,7 @@ def p_function(p):
     'function : returnType FUNCTION ID addFunction1 LPAREN params RPAREN addFunction3 vars addFunction4 block'
     global currentScope
     functionDirectory[currentScope][FUNCTION_TEMP_COUNT] = resetTemporals()
+    functionDirectory[currentScope][FUNCTION_VAR_COUNT] = resetLocals()
     del variableTable[currentScope]
     currentScope = "global"
     if (function_type != 'void' and (not hasReturn)):
@@ -249,8 +263,6 @@ def p_function(p):
 
 def p_addFunction4(p):
     'addFunction4 :'
-    functionDirectory[currentScope][FUNCTION_VAR_COUNT] = len(
-        variableTable[currentScope])
     functionDirectory[currentScope][FUNCTION_QUAD_INDEX] = len(quadruples)
 
 
@@ -271,13 +283,19 @@ def p_addFunction1(p):
     paramTable[currentScope] = {}
     functionDirectory[currentScope] = {}
     functionDirectory[currentScope][FUNCTION_TYPE] = currentType
+    functionDirectory[currentScope]["address"] = getNextAddress(
+        convert_type(currentType, GLOBAL_SCOPE))
     variableTable[currentScope] = {}
     function_id = currentScope
     function_type = currentType
     if (function_type != 'void'):
         if (function_id in variableTable[GLOBAL_SCOPE]):
             raise VarAlreadyInTable
-        variableTable[GLOBAL_SCOPE][function_id] = {'type': function_type}
+        variableTable[GLOBAL_SCOPE][function_id] = {
+            'type': function_type,
+            "address": getNextAddress(convert_type(function_type,
+                                                   GLOBAL_SCOPE))
+        }
 
 
 def p_params(p):
@@ -357,7 +375,8 @@ def p_callFunction1(p):
         checkFunction = False
         function_id = operandStack.top()
         # Esto es temporal hasta tener memoria, le tenemos que pasar la cantidad de vars.
-        quad = Quadruple(ERA, function_id, None, None)
+        quad = Quadruple(ERA, functionDirectory[function_id]["address"], None,
+                         None)
         quadruples.append(quad)
         global paramCounter
         # este elda lo puso como 1 -- si tenemos problemas despues puede ser esto
@@ -393,11 +412,14 @@ def p_callFunction4(p):
     idType = typeStack.pop()
     if paramCounter + 1 == len(paramTable[function_id]):
         result = getNextAddress(convert_type(idType, TEMPORAL_SCOPE))
-        quad = Quadruple(GOSUB, function_id, None,
+        quad = Quadruple(GOSUB, functionDirectory[function_id]["address"],
+                         None,
                          functionDirectory[function_id][FUNCTION_QUAD_INDEX])
         quadruples.append(quad)
         if functionDirectory[function_id][FUNCTION_TYPE] != "void":
-            assignQuad = Quadruple('=', function_id, None, result)
+            assignQuad = Quadruple('=',
+                                   functionDirectory[function_id]["address"],
+                                   None, result)
             quadruples.append(assignQuad)
             operandStack.push(result)
             typeStack.push(functionDirectory[function_id][FUNCTION_TYPE])
