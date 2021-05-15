@@ -858,5 +858,6 @@ def compile():
     print(content['codigo'])
     print(quadDict)
     return quadDict
+# hacer uno con method update para limpiar
 if __name__ == '__main__':
     app.run(debug=True)

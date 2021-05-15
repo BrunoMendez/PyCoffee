@@ -10,3 +10,5 @@ En nuestro tercer avance logramos corregir algunos errores de la gramatica al ig
 En el cuarto avance logramos agregar todo el codigo intermedio para los estatutos no-lineales for, while, if, if-else. También creamos un avail para guardar temporales y arreglamos bugs de entregas pasadas.
 
 En el quinto avance logramos agregar todo el codigo intermedio para llamar a funciones void y declarar funciones void. Tambien realizamos unos cambios al parser para poder agregar lo desarrollado correctamente.
+
+En el sexto avance logramos terminar todo el codigo para declarar y llamar funciones con tipo. Tambien realizamos el codigo intermedio para memoria y un primer avance del front/backend para comunicarnos con el Compilador usando Flask y NodeJS. El front-end no es final solo es para visualizar
