@@ -862,4 +862,4 @@ def compile():
     for number, element in enumerate(quadruples): quadDict[number] = element.generateLista()
     return quadDict
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
