@@ -859,9 +859,6 @@ def compile():
     size = [i for i in range(0, len(quadruples))]
     lista = []
     for number, element in enumerate(quadruples): quadDict[number] = element.generateLista()
-    print(countRuns)
-    """ if countRuns > 1:
-        quadruples = [] """
     return quadDict
 if __name__ == '__main__':
     app.run(debug=True)
