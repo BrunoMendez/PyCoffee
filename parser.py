@@ -3,6 +3,7 @@
 # bug report ----> si no especificas la variable arriba del programa se queda esperando y no arroja ningun resultado
 # hacer algo para que si se pone una variable que no existe en la tabla regresar un error(variable not declared!)
 # no estamos pasando el tipo de la variable al typeStack
+from os import error, strerror
 import ply.yacc as yacc
 import sys
 import lexer
@@ -829,6 +830,39 @@ def p_error(p):
           (p.lineno, p.type, p.value, p.lexpos))
     exit()
 
+def initalizeEverything():
+    global quadruples
+    global functionDirectory
+    global variableTable
+    global paramTable
+    global varIds
+    global currentType
+    global checkFunction
+    global hasReturn
+    global paramCounter
+    global operatorStack
+    global operandStack
+    global typeStack
+    global jumpStack
+    global forStack
+    global function_id
+    global function_type
+    functionDirectory = {}
+    variableTable = {}
+    paramTable = {}
+    varIds = Queue()
+    currentType = ""
+    checkFunction = False
+    hasReturn = False
+    paramCounter = 0
+    operatorStack = Stack()
+    operandStack = Stack()
+    typeStack = Stack()
+    jumpStack = Stack()
+    forStack = Stack()
+    quadruples = []
+    function_id = ""
+    function_type = ""
 
 # Constructor del parser
 parser = yacc.yacc()
@@ -845,21 +879,28 @@ def root():
     return "Hello World"
 @app.route('/compile', methods=["POST"])
 def compile():
-    content = request.get_json()
-    quadDict = {}
-    size = []
-    global countRuns
-    global quadruples
-    countRuns = countRuns + 1
-    if countRuns > 1:
-        quadruples = []
-    # Here we will pass to the vm 
-    # and return the result of the vm to the front
-    result = parser.parse(content['codigo'])
-    print('////', len(quadruples))
-    size = [i for i in range(0, len(quadruples))]
-    lista = []
-    for number, element in enumerate(quadruples): quadDict[number] = element.generateLista()
-    return quadDict
-if __name__ == '__main__':
-    app.run(host='0.0.0.0')
+        content = request.get_json()
+        quadDict = {}
+        size = []
+        global countRuns
+        global quadruples
+        countRuns = countRuns + 1
+        if countRuns > 1:
+            initalizeEverything()
+            
+        # Here we will pass to the vm 
+        # and return the result of the vm to the front
+        try :
+            result = parser.parse(content['codigo'])
+            print('////', len(quadruples))
+            size = [i for i in range(0, len(quadruples))]
+            lista = []
+            for number, element in enumerate(quadruples): quadDict[number] = element.generateLista()
+            return quadDict
+        except Exception as e:
+            errors = {
+                1: str(e)
+            }
+            return errors
+if __name__ == "__main__":
+  app.run(debug=True)
