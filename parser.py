@@ -842,6 +842,9 @@ f = open(filename, "r")
 # parsear archivo
 app = Flask(__name__)
 CORS(app)
+@app.route('/')
+def root():
+    return "Hello World"
 @app.route('/compile', methods=["POST"])
 def compile():
     content = request.get_json()

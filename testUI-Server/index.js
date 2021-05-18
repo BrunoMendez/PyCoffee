@@ -1,6 +1,6 @@
 let url = "http://127.0.0.1:5000/compile"
 let resetUrl = "http://127.0.0.1:5000/compile-reset"
-
+let API_TOKEN = "ELDA"
 let button = document.getElementById('compile');
 let result = document.getElementById('result');
 let reset = document.getElementById('reset');
@@ -15,6 +15,7 @@ button.addEventListener('click', event => {
     let settings = {
         method: 'POST',
         headers: {
+            Authorization: `Bearer ${API_TOKEN}`,
             'Content-Type': 'application/json'
         },
         body : JSON.stringify( data )
@@ -43,8 +44,7 @@ button.addEventListener('click', event => {
 })
 
 reset.addEventListener('click', event => {
-    let codigo = document.getElementById('pycoffee').value;
-    codigo = "";
-    let result = document.getElementById('result').value
+    let codigo = document.getElementById('pycoffee').innerText = ""
+    let result = document.getElementById('result').innerText = "";
     result = "";
 })
