@@ -10,10 +10,12 @@ import lexer
 from errors import *
 from datastructures import *
 from memory import *
+
 tokens = lexer.tokens
 from flask import Flask, request
 from flask_cors import CORS
 from flask import jsonify
+
 FUNCTION_TYPE = "type"
 FUNCTION_PARAM_COUNT = "paramCount"
 FUNCTION_VAR_COUNT = "varCount"
@@ -30,11 +32,19 @@ GOSUB = "GOSUB"
 PARAMETER = "PARAMETER"
 RETURN = "RETURN"
 END_PROG = "ENDPROG"
+ID = "id"
+DIM = "dim"
+SIZE = "size"
+R = "r"
+LIM = "lim"
+LIM2 = "lim2"
+M1 = "m1"
+M2 = "m2"
 currentScope = GLOBAL_SCOPE
 functionDirectory = {}
 variableTable = {}
 paramTable = {}
-varIds = Queue()
+varIds = Stack()
 currentType = ""
 checkFunction = False
 hasReturn = False
@@ -48,6 +58,7 @@ quadruples = []
 function_id = ""
 function_type = ""
 countRuns = 0
+
 
 def convert_type(idType, scope):
     if idType == "void":
@@ -134,11 +145,33 @@ def p_varsPrime(p):
 def p_addVars(p):
     'addVars :'
     while not varIds.empty():
-        var = varIds.dequeue()
-        if (var in variableTable[currentScope]):
-            raise VarAlreadyInTable
-            exit()
+        var = varIds.pop()
+        ## Nos dice si es un array
+        if (type(var) is dict):
+            if (var[ID] in variableTable[currentScope]):
+                raise VarAlreadyInTable
+            address = ""
+            if (currentScope == GLOBAL_SCOPE):
+                address = getNextAddress(
+                    convert_type(currentType, GLOBAL_SCOPE), var[R])
+            else:
+                address = getNextAddress(
+                    convert_type(currentType, LOCAL_SCOPE), var[R])
+            variableTable[currentScope][var[ID]] = {
+                "type": currentType,
+                "address": address,
+                "isArray": True,
+                DIM: var[DIM],
+                SIZE: var[R],
+                LIM: var[LIM],
+                M1: var[M1]
+            }
+            if (var[DIM] > 1):
+                variableTable[currentScope][var[ID]][LIM2] = var[LIM2]
+                variableTable[currentScope][var[ID]][M2] = var[M2]
         else:
+            if (var in variableTable[currentScope]):
+                raise VarAlreadyInTable
             address = ""
             if (currentScope == GLOBAL_SCOPE):
                 address = getNextAddress(
@@ -148,22 +181,23 @@ def p_addVars(p):
                                                       LOCAL_SCOPE))
             variableTable[currentScope][var] = {
                 "type": currentType,
-                "address": address
+                "address": address,
+                "isArray": False
             }
 
 
 def p_addFunction2(p):
     'addFunction2 :'
     while not varIds.empty():
-        var = varIds.dequeue()
+        var = varIds.pop()
         if (var in variableTable[currentScope]):
             raise VarAlreadyInTable
-            exit()
         else:
             variableTable[currentScope][var] = {
                 "type": currentType,
                 "address":
-                getNextAddress(convert_type(currentType, LOCAL_SCOPE))
+                getNextAddress(convert_type(currentType, LOCAL_SCOPE)),
+                "isArray": False
             }
             paramTable[currentScope][var] = {"type": currentType}
 
@@ -184,13 +218,33 @@ def p_listIdsPrime(p):
 
 def p_ids(p):
     '''ids : ID addId
-            | ID addId LBRACKET CST_INT RBRACKET 
-            | ID addId LBRACKET CST_INT RBRACKET LBRACKET CST_INT RBRACKET'''
+            | ID addId LBRACKET CST_INT addId1 RBRACKET
+            | ID addId LBRACKET CST_INT addId1 RBRACKET LBRACKET CST_INT addId2 RBRACKET'''
+
+
+def p_addId1(p):
+    'addId1 :'
+    id = varIds.pop()
+    array = {ID: id, DIM: 1, LIM: int(p[-1])}
+    array[R] = array[LIM]
+    array[M1] = 1
+    varIds.push(array)
+
+
+def p_addId2(p):
+    'addId2 :'
+    array = varIds.pop()
+    array[DIM] += 1
+    array[LIM2] = int(p[-1])
+    array[R] = array[LIM2] * array[R]
+    array[M1] = array[LIM2]
+    array[M2] = 1
+    varIds.push(array)
 
 
 def p_addId(p):
     'addId :'
-    varIds.enqueue(p[-1])
+    varIds.push(p[-1])
 
 
 def p_checkIfNotFunction(p):
@@ -201,7 +255,7 @@ def p_checkIfNotFunction(p):
 
 def p_ids2(p):
     '''ids2 : ID addIdToStack checkIfNotFunction
-            | ID arrPos'''
+            | ID addIdToStack arrPos'''
 
 
 def p_addIdToStack(p):
@@ -220,18 +274,38 @@ def p_addIdToStack(p):
     elif (varId in variableTable[currentScope]):
         varType = variableTable[currentScope][varId]["type"]
         typeStack.push(varType)
+        # if (variableTable[currentScope][varId]["isArray"]):
+        #     operandStack.push(varId)
+        # else:
         operandStack.push(variableTable[currentScope][varId]["address"])
     elif (varId in variableTable[GLOBAL_SCOPE]):
         varType = variableTable[GLOBAL_SCOPE][varId]["type"]
         typeStack.push(varType)
+        # if (variableTable[currentScope][varId]["isArray"]):
+        #     operandStack.push(varId)
+        # else:
         operandStack.push(variableTable[GLOBAL_SCOPE][varId]["address"])
     else:
         raise VarNotDefined
 
 
 def p_arrPos(p):
-    '''arrPos : LBRACKET exp RBRACKET 
+    '''arrPos : LBRACKET exp RBRACKET
                 | LBRACKET exp RBRACKET LBRACKET exp RBRACKET'''
+
+
+# def p_addArr1(p):
+#     'addArr1 :'
+#     operatorStack.push("(")
+
+# def p_addArr2(p):
+#     'addArr2 :'
+#     exp = operandStack.pop()
+#     exp_type = typeStack.pop()
+#     id = operandStack.pop()
+#     id_type = typeStack.pop()
+#     Quadruple("<", exp,  )
+#     print(exp, exp_type, id, id_type)
 
 
 def p_type(p):
@@ -296,7 +370,8 @@ def p_addFunction1(p):
         variableTable[GLOBAL_SCOPE][function_id] = {
             'type': function_type,
             "address": getNextAddress(convert_type(function_type,
-                                                   GLOBAL_SCOPE))
+                                                   GLOBAL_SCOPE)),
+            "isArray": False
         }
 
 
@@ -493,6 +568,7 @@ def p_conditional(p):
     'conditional : WHILE addWhile1 LPAREN expression addWhile2 RPAREN block addWhile3'
 
 
+# Podrias inicializar el for con una funcion?
 def p_nonConditional(p):
     'nonConditional : FOR LPAREN ids2 EQUAL addOperator exp addFor1 COLON exp addFor2 RPAREN block addFor3'
 
@@ -545,7 +621,7 @@ def p_varCst(p):
 def p_callableCst(p):
     '''callableCst : ID addIdToStack checkIfNotFunction
                 |  ID addIdToStack callFunction
-                | ID arrPos'''
+                | ID addIdToStack arrPos'''
 
 
 def p_popOperator(p):
@@ -830,7 +906,8 @@ def p_error(p):
           (p.lineno, p.type, p.value, p.lexpos))
     exit()
 
-def initalizeEverything():
+
+def initAll():
     global quadruples
     global functionDirectory
     global variableTable
@@ -850,7 +927,7 @@ def initalizeEverything():
     functionDirectory = {}
     variableTable = {}
     paramTable = {}
-    varIds = Queue()
+    varIds = Stack()
     currentType = ""
     checkFunction = False
     hasReturn = False
@@ -863,6 +940,8 @@ def initalizeEverything():
     quadruples = []
     function_id = ""
     function_type = ""
+    resetAll()
+
 
 # Constructor del parser
 parser = yacc.yacc()
@@ -874,33 +953,34 @@ f = open(filename, "r")
 # parsear archivo
 app = Flask(__name__)
 CORS(app)
+
+
 @app.route('/')
 def root():
     return "Hello World"
+
+
 @app.route('/compile', methods=["POST"])
 def compile():
-        content = request.get_json()
-        quadDict = {}
-        size = []
-        global countRuns
-        global quadruples
-        countRuns = countRuns + 1
-        if countRuns > 1:
-            initalizeEverything()
-            
-        # Here we will pass to the vm 
-        # and return the result of the vm to the front
-        try :
-            result = parser.parse(content['codigo'])
-            print('////', len(quadruples))
-            size = [i for i in range(0, len(quadruples))]
-            lista = []
-            for number, element in enumerate(quadruples): quadDict[number] = element.generateLista()
-            return quadDict
-        except Exception as e:
-            errors = {
-                1: str(e)
-            }
-            return errors
+    content = request.get_json()
+    quadDict = {}
+    global countRuns
+    countRuns = countRuns + 1
+    if countRuns > 1:
+        initAll()
+
+    # Here we will pass to the vm
+    # and return the result of the vm to the front
+    try:
+        parser.parse(content['codigo'])
+        print('////', len(quadruples))
+        for number, element in enumerate(quadruples):
+            quadDict[number] = element.generateLista()
+        return quadDict
+    except Exception as e:
+        errors = {1: str(e)}
+        return errors
+
+
 if __name__ == "__main__":
-  app.run(debug=True)
+    app.run(debug=True)

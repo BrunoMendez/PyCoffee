@@ -29,10 +29,11 @@ types = {
 }
 
 
-def getNextAddress(mem):
-    types[mem] = types[mem] + 1
+def getNextAddress(mem, offset=1):
+    current = types[mem]
+    types[mem] = types[mem] + offset
     if types[mem] % 1000 != 0:
-        return types[mem] - 1
+        return current
     else:
         raise MemoryError
 
@@ -57,3 +58,22 @@ def resetLocals():
     types[LOCAL_FLOAT] = 5000
     types[LOCAL_CHAR] = 6000
     return count
+
+
+def resetAll():
+    global types
+    types = {
+        GLOBAL_INT: 1000,
+        GLOBAL_FLOAT: 2000,
+        GLOBAL_CHAR: 3000,
+        LOCAL_INT: 4000,
+        LOCAL_FLOAT: 5000,
+        LOCAL_CHAR: 6000,
+        TEMPORAL_INT: 7000,
+        TEMPORAL_FLOAT: 8000,
+        TEMPORAL_CHAR: 9000,
+        CONSTANT_INT: 10000,
+        CONSTANT_FLOAT: 11000,
+        CONSTANT_CHAR: 12000,
+        VOID: 13000
+    }
