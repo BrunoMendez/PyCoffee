@@ -9,7 +9,8 @@ import lexer
 from errors import *
 from datastructures import *
 from memory import *
-
+import os
+import sys
 tokens = lexer.tokens
 from flask import Flask, request
 from flask_cors import CORS
@@ -47,7 +48,7 @@ forStack = Stack()
 quadruples = []
 function_id = ""
 function_type = ""
-
+countRuns = 0
 
 def convert_type(idType, scope):
     if idType == "void":
@@ -846,18 +847,21 @@ def compile():
     content = request.get_json()
     quadDict = {}
     size = []
+    global countRuns
+    global quadruples
+    countRuns = countRuns + 1
+    if countRuns > 1:
+        quadruples = []
     # Here we will pass to the vm 
     # and return the result of the vm to the front
     result = parser.parse(content['codigo'])
     print('////', len(quadruples))
     size = [i for i in range(0, len(quadruples))]
     lista = []
-    for element in quadruples:
-        lista.append(element.generateLista())
-    quadDict = dict(zip(size, lista))
-    print(content['codigo'])
-    print(quadDict)
+    for number, element in enumerate(quadruples): quadDict[number] = element.generateLista()
+    print(countRuns)
+    """ if countRuns > 1:
+        quadruples = [] """
     return quadDict
-# hacer uno con method update para limpiar
 if __name__ == '__main__':
     app.run(debug=True)

@@ -1,11 +1,13 @@
 let url = "http://127.0.0.1:5000/compile"
-
+let resetUrl = "http://127.0.0.1:5000/compile-reset"
 
 let button = document.getElementById('compile');
 let result = document.getElementById('result');
+let reset = document.getElementById('reset');
 button.addEventListener('click', event => {
     result.value = "";
-    let codigo = document.getElementById('pycoffee').value;
+    let codigo;
+    codigo = document.getElementById('pycoffee').value;
     let data = {
         codigo: codigo
     }
@@ -38,4 +40,11 @@ button.addEventListener('click', event => {
         .catch( err => {
            console.log(err);
         });
+})
+
+reset.addEventListener('click', event => {
+    let codigo = document.getElementById('pycoffee').value;
+    codigo = "";
+    let result = document.getElementById('result').value
+    result = "";
 })
