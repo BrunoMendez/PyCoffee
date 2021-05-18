@@ -1,1 +1,1 @@
-worker: python parser.py
+web: python parser.py
