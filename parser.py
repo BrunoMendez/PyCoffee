@@ -9,8 +9,6 @@ import lexer
 from errors import *
 from datastructures import *
 from memory import *
-import os
-import sys
 tokens = lexer.tokens
 from flask import Flask, request
 from flask_cors import CORS

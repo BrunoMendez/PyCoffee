@@ -1,4 +1,4 @@
-let url = "https://pycoffeecompiler.herokuapp.com/compile"
+let url = "http://127.0.0.1:5000/compile"
 let resetUrl = "http://127.0.0.1:5000/compile-reset"
 let API_TOKEN = "ELDA"
 let button = document.getElementById('compile');
@@ -14,6 +14,7 @@ button.addEventListener('click', event => {
     console.log(data);
     let settings = {
         method: 'POST',
+        mode: 'cors',
         headers: {
             Authorization: `Bearer ${API_TOKEN}`,
             'Content-Type': 'application/json'
