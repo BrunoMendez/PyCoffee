@@ -12,6 +12,7 @@ from datastructures import *
 from memory import *
 from constants import *
 import vm
+
 tokens = lexer.tokens
 from flask import *
 from flask_cors import CORS
@@ -502,7 +503,7 @@ def p_return(p):
 
 
 def p_read(p):
-    'read : INPUT addOperator LPAREN readPrime RPAREN SEMICOLON'
+    'read : INPUT LPAREN readPrime RPAREN SEMICOLON'
 
 
 def p_readPrime(p):
@@ -512,8 +513,8 @@ def p_readPrime(p):
 def p_readVar(p):
     'readVar :'
     var = operandStack.pop()
-    typeStack.pop()
-    quadruple = Quadruple(operatorStack.pop(), None, None, var)
+    varType = typeStack.pop()
+    quadruple = Quadruple(INPUT, varType, None, var)
     quadruples.append(quadruple)
 
 
@@ -929,8 +930,8 @@ def root():
 
 @app.route('/compile', methods=["POST"])
 def compile():
+    print("@@@")
     content = request.get_json()
-    quadDict = {}
     global countRuns
     countRuns = countRuns + 1
     if countRuns > 1:
@@ -941,11 +942,25 @@ def compile():
         parser.parse(content['codigo'])
         print('////', len(quadruples))
         # [bug] if you make a mistake and then push a correct code, then it wont print the vm
-        vm.start(quadruples)
-        for number, element in enumerate(quadruples):
-            quadDict[number] = element.generateLista()
-        return quadDict
+        return vm.start(quadruples)
     except Exception as e:
+        errors = {1: str(e)}
+        return errors
+
+
+@app.route('/user-input', methods=["POST"])
+def userInput():
+    print("@@@")
+    content = request.get_json()
+    print(content)
+    try:
+        # [bug] if you make a mistake and then push a correct code, then it wont print the vm
+        print("$$")
+        return vm.start(quadruples,
+                        currentQuad=content[CURRENT_QUAD],
+                        inputValue=content[INPUT_VALUE])
+    except Exception as e:
+        print(e)
         errors = {1: str(e)}
         return errors
 

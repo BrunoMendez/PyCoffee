@@ -19,6 +19,10 @@ MAIN = "main"
 IS_ARRAY = "isArray"
 ADDRESS = "address"
 
+INPUT_REQUEST = "INPUT_REQUEST"
+CURRENT_QUAD = "current_quad"
+INPUT_VALUE = "input_value"
+
 # Types
 INT = "int"
 FLOAT = "float"
@@ -42,6 +46,7 @@ RETURN = "RETURN"
 END_PROG = "ENDPROG"
 PRINT_STR = "PRINTSTR"
 PRINT_EXP = "PRINTEXP"
+INPUT = "INPUT"
 
 # memory constants
 GLOBAL_INT = 'gInt'
