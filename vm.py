@@ -25,6 +25,12 @@ def start(quadruples):
         elif operator == "*":
             result = memory[leftOperand] * memory[rightOperand]
             memory[quad_result] = result
+        elif operator == '=':
+            result = memory[leftOperand]
+        elif operator == 'PRINTEXP':
+            print(result)
+        elif operator == 'PRINTSTR':
+            print(quad_result)
         elif operator == GOTO:
             if leftOperand == MAIN:
                 currentQuad = quad_result - 1
