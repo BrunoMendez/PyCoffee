@@ -385,7 +385,7 @@ def p_assignment(p):
 
 
 def p_write(p):
-    '''write : PRINT addOperator LPAREN writePrime RPAREN SEMICOLON'''
+    '''write : PRINT LPAREN writePrime RPAREN SEMICOLON'''
 
 
 def p_writePrime(p):
@@ -396,14 +396,13 @@ def p_writePrime(p):
 def p_printExpression(p):
     'printExpression :'
     typeStack.pop()
-    quadruple = Quadruple(operatorStack.pop(), None, None, operandStack.pop())
+    quadruple = Quadruple(PRINT_EXP, None, None, operandStack.pop())
     quadruples.append(quadruple)
 
 
 def p_printString(p):
     'printString :'
-    typeStack.pop()
-    quadruple = Quadruple(operatorStack.pop(), None, None, p[-1])
+    quadruple = Quadruple(PRINT_STR, None, None, p[-1])
     quadruples.append(quadruple)
 
 
