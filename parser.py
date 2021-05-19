@@ -18,6 +18,7 @@ from flask import Flask, request
 from flask_cors import CORS
 from flask import jsonify
 
+app = Flask(__name__)
 currentScope = GLOBAL_SCOPE
 functionDirectory = {}
 variableTable = {}
@@ -941,12 +942,12 @@ def compile():
     countRuns = countRuns + 1
     if countRuns > 1:
         initAll()
-
     # Here we will pass to the vm
     # and return the result of the vm to the front
     try:
         parser.parse(content['codigo'])
         print('////', len(quadruples))
+        # [bug] if you make a mistake and then push a correct code, then it wont print the vm
         vm.start(quadruples)
         for number, element in enumerate(quadruples):
             quadDict[number] = element.generateLista()
