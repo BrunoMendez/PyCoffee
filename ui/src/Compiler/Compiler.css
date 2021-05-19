@@ -1,0 +1,25 @@
+#formEmpresa {
+	text-align: left;
+	width: 90%;
+	/* padding-top: 15px; */
+	padding-bottom: 45px;
+	margin: 0px auto;
+}
+
+#formContainer {
+	/* background-color: rgb(229, 229, 236); */
+	/* border-color: rgb(182, 182, 187) !important;  */
+	padding: 15px 0px;
+}
+
+.form-label {
+	margin-left: 0;
+	color: #f05d29 !important;
+}
+
+#btn-submitForm {
+	float: right;
+	margin-bottom: 15px;
+	background-color: #f05d29 !important;
+	border-color: #f05d29 !important;
+}
