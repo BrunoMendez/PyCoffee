@@ -10,36 +10,14 @@ import lexer
 from errors import *
 from datastructures import *
 from memory import *
+from constants import *
+import vm
 
 tokens = lexer.tokens
 from flask import Flask, request
 from flask_cors import CORS
 from flask import jsonify
 
-FUNCTION_TYPE = "type"
-FUNCTION_PARAM_COUNT = "paramCount"
-FUNCTION_VAR_COUNT = "varCount"
-FUNCTION_TEMP_COUNT = "tempCount"
-FUNCTION_QUAD_INDEX = "quadIndex"
-GLOBAL_SCOPE = "global"
-LOCAL_SCOPE = "local"
-TEMPORAL_SCOPE = "temporal"
-GOTO = "GOTO"
-END_FUNC = "ENDFunc"
-ERA = "ERA"
-GOTOF = "GOTOF"
-GOSUB = "GOSUB"
-PARAMETER = "PARAMETER"
-RETURN = "RETURN"
-END_PROG = "ENDPROG"
-ID = "id"
-DIM = "dim"
-SIZE = "size"
-R = "r"
-LIM = "lim"
-LIM2 = "lim2"
-M1 = "m1"
-M2 = "m2"
 currentScope = GLOBAL_SCOPE
 functionDirectory = {}
 variableTable = {}
@@ -61,28 +39,28 @@ countRuns = 0
 
 
 def convert_type(idType, scope):
-    if idType == "void":
+    if idType == VOID:
         return VOID
     if scope == GLOBAL_SCOPE:
-        if idType == 'int':
+        if idType == INT:
             return GLOBAL_INT
-        if idType == 'float':
+        if idType == FLOAT:
             return GLOBAL_FLOAT
-        if idType == 'char':
+        if idType == CHAR:
             return GLOBAL_CHAR
     if scope == LOCAL_SCOPE:
-        if idType == 'int':
+        if idType == INT:
             return LOCAL_INT
-        if idType == 'float':
+        if idType == FLOAT:
             return LOCAL_FLOAT
-        if idType == 'char':
+        if idType == CHAR:
             return LOCAL_CHAR
     if scope == TEMPORAL_SCOPE:
-        if idType == 'int':
+        if idType == INT:
             return TEMPORAL_INT
-        if idType == 'float':
+        if idType == FLOAT:
             return TEMPORAL_FLOAT
-        if idType == 'char':
+        if idType == CHAR:
             return TEMPORAL_CHAR
     raise InvalidType
 
@@ -121,14 +99,14 @@ def p_createGlobalTables(p):
     'createGlobalTables : '
     currentScope = GLOBAL_SCOPE
     functionDirectory[currentScope] = {
-        FUNCTION_TYPE: "void",
+        TYPE: VOID,
         FUNCTION_PARAM_COUNT: 0,
         FUNCTION_VAR_COUNT: 0,
         FUNCTION_QUAD_INDEX: 0,
         FUNCTION_TEMP_COUNT: 0
     }
     variableTable[currentScope] = {}
-    quad = Quadruple(GOTO, "main", None, None)
+    quad = Quadruple(GOTO, MAIN, None, None)
     quadruples.append(quad)
 
 
@@ -152,15 +130,17 @@ def p_addVars(p):
                 raise VarAlreadyInTable
             address = ""
             if (currentScope == GLOBAL_SCOPE):
-                address = getNextAddress(
-                    convert_type(currentType, GLOBAL_SCOPE), var[R])
+                address = getNextAddress(convert_type(currentType,
+                                                      GLOBAL_SCOPE),
+                                         offset=var[R])
             else:
-                address = getNextAddress(
-                    convert_type(currentType, LOCAL_SCOPE), var[R])
+                address = getNextAddress(convert_type(currentType,
+                                                      LOCAL_SCOPE),
+                                         offset=var[R])
             variableTable[currentScope][var[ID]] = {
-                "type": currentType,
-                "address": address,
-                "isArray": True,
+                TYPE: currentType,
+                ADDRESS: address,
+                IS_ARRAY: True,
                 DIM: var[DIM],
                 SIZE: var[R],
                 LIM: var[LIM],
@@ -180,9 +160,9 @@ def p_addVars(p):
                 address = getNextAddress(convert_type(currentType,
                                                       LOCAL_SCOPE))
             variableTable[currentScope][var] = {
-                "type": currentType,
-                "address": address,
-                "isArray": False
+                TYPE: currentType,
+                ADDRESS: address,
+                IS_ARRAY: False
             }
 
 
@@ -194,12 +174,12 @@ def p_addFunction2(p):
             raise VarAlreadyInTable
         else:
             variableTable[currentScope][var] = {
-                "type": currentType,
-                "address":
-                getNextAddress(convert_type(currentType, LOCAL_SCOPE)),
-                "isArray": False
+                TYPE: currentType,
+                ADDRESS: getNextAddress(convert_type(currentType,
+                                                     LOCAL_SCOPE)),
+                IS_ARRAY: False
             }
-            paramTable[currentScope][var] = {"type": currentType}
+            paramTable[currentScope][var] = {TYPE: currentType}
 
 
 def p_functions(p):
@@ -265,26 +245,22 @@ def p_addIdToStack(p):
     if varId in functionDirectory:
         global checkFunction
         checkFunction = True
-        typeStack.push(functionDirectory[varId]["type"])
+        typeStack.push(functionDirectory[varId][TYPE])
         operandStack.push(varId)
-        """ function_type = functionDirectory[varId]["type"]
-        typeStack.push(function_type)
-        operandStack.push(getNextAddress(convert_type(function_type, GLOBAL_SCOPE))) """
-        # Cambiar order global local
     elif (varId in variableTable[currentScope]):
-        varType = variableTable[currentScope][varId]["type"]
+        varType = variableTable[currentScope][varId][TYPE]
         typeStack.push(varType)
-        # if (variableTable[currentScope][varId]["isArray"]):
+        # if (variableTable[currentScope][varId][IS_ARRAY]):
         #     operandStack.push(varId)
         # else:
-        operandStack.push(variableTable[currentScope][varId]["address"])
+        operandStack.push(variableTable[currentScope][varId][ADDRESS])
     elif (varId in variableTable[GLOBAL_SCOPE]):
-        varType = variableTable[GLOBAL_SCOPE][varId]["type"]
+        varType = variableTable[GLOBAL_SCOPE][varId][TYPE]
         typeStack.push(varType)
-        # if (variableTable[currentScope][varId]["isArray"]):
+        # if (variableTable[currentScope][varId][IS_ARRAY]):
         #     operandStack.push(varId)
         # else:
-        operandStack.push(variableTable[GLOBAL_SCOPE][varId]["address"])
+        operandStack.push(variableTable[GLOBAL_SCOPE][varId][ADDRESS])
     else:
         raise VarNotDefined
 
@@ -319,7 +295,7 @@ def p_type(p):
 def p_returnType(p):
     '''returnType : type
                     | VOID'''
-    if (p[1] == 'void'):
+    if (p[1] == VOID):
         global currentType
         currentType = p[1]
 
@@ -330,10 +306,10 @@ def p_function(p):
     functionDirectory[currentScope][FUNCTION_TEMP_COUNT] = resetTemporals()
     functionDirectory[currentScope][FUNCTION_VAR_COUNT] = resetLocals()
     del variableTable[currentScope]
-    currentScope = "global"
-    if (function_type != 'void' and (not hasReturn)):
+    currentScope = GLOBAL_SCOPE
+    if (function_type != VOID and (not hasReturn)):
         raise NonVoidFuncReturnMissing
-    elif not hasReturn and function_type == 'void':
+    elif not hasReturn and function_type == VOID:
         quadruples.append(Quadruple(END_FUNC, None, None, None))
 
 
@@ -358,20 +334,19 @@ def p_addFunction1(p):
     currentScope = p[-1]
     paramTable[currentScope] = {}
     functionDirectory[currentScope] = {}
-    functionDirectory[currentScope][FUNCTION_TYPE] = currentType
-    functionDirectory[currentScope]["address"] = getNextAddress(
+    functionDirectory[currentScope][TYPE] = currentType
+    functionDirectory[currentScope][ADDRESS] = getNextAddress(
         convert_type(currentType, GLOBAL_SCOPE))
     variableTable[currentScope] = {}
     function_id = currentScope
     function_type = currentType
-    if (function_type != 'void'):
+    if (function_type != VOID):
         if (function_id in variableTable[GLOBAL_SCOPE]):
             raise VarAlreadyInTable
         variableTable[GLOBAL_SCOPE][function_id] = {
-            'type': function_type,
-            "address": getNextAddress(convert_type(function_type,
-                                                   GLOBAL_SCOPE)),
-            "isArray": False
+            TYPE: function_type,
+            ADDRESS: getNextAddress(convert_type(function_type, GLOBAL_SCOPE)),
+            IS_ARRAY: False
         }
 
 
@@ -452,7 +427,7 @@ def p_callFunction1(p):
         checkFunction = False
         function_id = operandStack.top()
         # Esto es temporal hasta tener memoria, le tenemos que pasar la cantidad de vars.
-        quad = Quadruple(ERA, functionDirectory[function_id]["address"], None,
+        quad = Quadruple(ERA, functionDirectory[function_id][ADDRESS], None,
                          None)
         quadruples.append(quad)
         global paramCounter
@@ -469,7 +444,7 @@ def p_callFunction2(p):
     function_id = operandStack.top()
     keys_list = list(paramTable[function_id])
     key = keys_list[paramCounter]
-    if argumentType == paramTable[function_id][key]['type']:
+    if argumentType == paramTable[function_id][key][TYPE]:
         quad = Quadruple(PARAMETER, argument, None, paramCounter)
         quadruples.append(quad)
     else:
@@ -489,17 +464,16 @@ def p_callFunction4(p):
     idType = typeStack.pop()
     if paramCounter + 1 == len(paramTable[function_id]):
         result = getNextAddress(convert_type(idType, TEMPORAL_SCOPE))
-        quad = Quadruple(GOSUB, functionDirectory[function_id]["address"],
-                         None,
+        quad = Quadruple(GOSUB, functionDirectory[function_id][ADDRESS], None,
                          functionDirectory[function_id][FUNCTION_QUAD_INDEX])
         quadruples.append(quad)
-        if functionDirectory[function_id][FUNCTION_TYPE] != "void":
+        if functionDirectory[function_id][TYPE] != VOID:
             assignQuad = Quadruple('=',
-                                   functionDirectory[function_id]["address"],
+                                   functionDirectory[function_id][ADDRESS],
                                    None, result)
             quadruples.append(assignQuad)
             operandStack.push(result)
-            typeStack.push(functionDirectory[function_id][FUNCTION_TYPE])
+            typeStack.push(functionDirectory[function_id][TYPE])
     else:
         raise InvalidParamNum
 
@@ -520,7 +494,7 @@ def p_return(p):
     hasReturn = True
     result = operandStack.pop()
     res_type = typeStack.pop()
-    if (res_type != variableTable[GLOBAL_SCOPE][function_id]['type']):
+    if (res_type != variableTable[GLOBAL_SCOPE][function_id][TYPE]):
         raise TypeMismatchError
     else:
         quadruple = Quadruple(RETURN, None, None, result)
@@ -642,7 +616,7 @@ def p_addAssignment(p):
     leftType = typeStack.pop()
     operator = operatorStack.pop()
     opType = semanticCube[(leftType, resType, operator)]
-    if (opType != "error"):
+    if (opType != ERROR):
         # esto estaba asi -> Quadruple(operator, None, res, leftSide)
         quadruple = Quadruple(operator, res, None, leftSide)
         quadruples.append(quadruple)
@@ -653,14 +627,14 @@ def p_addAssignment(p):
 
 def p_addAndOr(p):
     'addAndOr :'
-    if (operatorStack.top() in ['and', 'or']):
+    if (operatorStack.top() in [AND, OR]):
         operator = operatorStack.pop()
         rightType = typeStack.pop()
         leftType = typeStack.pop()
         rightOperand = operandStack.pop()
         leftOperand = operandStack.pop()
         resultType = semanticCube[(leftType, rightType, operator)]
-        if resultType != 'error':
+        if resultType != ERROR:
             result = getNextAddress(convert_type(resultType, TEMPORAL_SCOPE))
             quadruples.append(
                 Quadruple(operator, leftOperand, rightOperand, result))
@@ -673,15 +647,15 @@ def p_addAndOr(p):
 
 def p_addNot(p):
     'addNot :'
-    if (operatorStack.top() == 'not'):
+    if (operatorStack.top() == NOT):
         operator = operatorStack.pop()
         opType = typeStack.pop()
         operand = operandStack.pop()
-        if (opType == 'int'):
+        if (opType == INT):
             result = getNextAddress(convert_type(opType, TEMPORAL_SCOPE))
             quadruples.append(Quadruple(operator, operand, None, result))
             operandStack.push(result)
-            typeStack.push('int')
+            typeStack.push(INT)
             # if any operand were a temporal space return it to avail
         else:
             raise TypeMismatchError()
@@ -696,7 +670,7 @@ def p_addExp(p):
         rightOperand = operandStack.pop()
         leftOperand = operandStack.pop()
         resultType = semanticCube[(leftType, rightType, operator)]
-        if resultType != 'error':
+        if resultType != ERROR:
             result = getNextAddress(convert_type(resultType, TEMPORAL_SCOPE))
             quadruples.append(
                 Quadruple(operator, leftOperand, rightOperand, result))
@@ -716,7 +690,7 @@ def p_addTerm(p):
         rightOperand = operandStack.pop()
         leftOperand = operandStack.pop()
         resultType = semanticCube[(leftType, rightType, operator)]
-        if resultType != 'error':
+        if resultType != ERROR:
             result = getNextAddress(convert_type(resultType, TEMPORAL_SCOPE))
             quadruple = Quadruple(operator, leftOperand, rightOperand, result)
             quadruples.append(quadruple)
@@ -736,7 +710,7 @@ def p_addFactor(p):
         rightOperand = operandStack.pop()
         leftOperand = operandStack.pop()
         resultType = semanticCube[(leftType, rightType, operator)]
-        if resultType != 'error':
+        if resultType != ERROR:
             result = getNextAddress(convert_type(resultType, TEMPORAL_SCOPE))
             quadruple = Quadruple(operator, leftOperand, rightOperand, result)
             quadruples.append(quadruple)
@@ -752,7 +726,7 @@ def p_addIf1(p):
     'addIf1 : '
     exp_type = typeStack.pop()
     result = operandStack.pop()
-    if exp_type != 'int':
+    if exp_type != INT:
         raise TypeMismatchError
     else:
         quadruple = Quadruple(GOTOF, result, None, None)
@@ -787,7 +761,7 @@ def p_addWhile2(p):
     'addWhile2 : '
     result = operandStack.pop()
     exp_type = typeStack.pop()
-    if (exp_type != "int"):
+    if (exp_type != INT):
         # Logica de manejo de errors
         raise TypeMismatchError
     else:
@@ -814,7 +788,7 @@ def p_addFor1(p):
     leftSide = operandStack.pop()
     leftType = typeStack.pop()
     operator = operatorStack.pop()
-    if (resType == "int" and leftType == "int"):
+    if (resType == INT and leftType == INT):
         quadruple = Quadruple(operator, res, None, leftSide)
         quadruples.append(quadruple)
         # Preparacion para hacer la suma a la variable cuando acabe el for
@@ -837,7 +811,7 @@ def p_addFor2(p):
     leftType = typeStack.pop()
     rightOperand = operandStack.pop()
     leftOperand = operandStack.pop()
-    if rightType == 'int' and leftType == 'int':
+    if rightType == INT and leftType == INT:
         result = getNextAddress(TEMPORAL_INT)
         quadruples.append(
             Quadruple(operator, leftOperand, rightOperand, result))
@@ -857,9 +831,9 @@ def p_addFor3(p):
     leftSide = operandStack.pop()
     leftType = typeStack.pop()
     rightSide = '1'
-    rightType = 'int'
+    rightType = INT
     resultType = semanticCube[(leftType, rightType, operator)]
-    if leftType == 'int':
+    if leftType == INT:
         result = getNextAddress(convert_type(resultType, TEMPORAL_SCOPE))
         quadruple = Quadruple(operator, leftSide, rightSide, result)
         quadruples.append(quadruple)
@@ -881,23 +855,23 @@ def p_addFor3(p):
 # getConvertedOperant is not necessary now!
 def p_addFloat(p):
     'addFloat :'
-    address = getNextAddress(CONSTANT_FLOAT)
+    address = getNextAddress(CONSTANT_FLOAT, value=p[-1], valType=FLOAT)
     operandStack.push(address)
-    typeStack.push('float')
+    typeStack.push(FLOAT)
 
 
 def p_addInt(p):
     'addInt :'
-    address = getNextAddress(CONSTANT_INT)
+    address = getNextAddress(CONSTANT_INT, value=p[-1], valType=INT)
     operandStack.push(address)
-    typeStack.push('int')
+    typeStack.push(INT)
 
 
 def p_addChar(p):
     'addChar :'
-    address = getNextAddress(CONSTANT_CHAR)
+    address = getNextAddress(CONSTANT_CHAR, value=p[-1], valType=CHAR)
     operandStack.push(address)
-    typeStack.push('char')
+    typeStack.push(CHAR)
 
 
 # Manejo de errores
@@ -974,6 +948,7 @@ def compile():
     try:
         parser.parse(content['codigo'])
         print('////', len(quadruples))
+        vm.start(quadruples)
         for number, element in enumerate(quadruples):
             quadDict[number] = element.generateLista()
         return quadDict

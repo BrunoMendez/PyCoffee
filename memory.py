@@ -1,16 +1,4 @@
-GLOBAL_INT = 'gInt'
-GLOBAL_FLOAT = 'gFloat'
-GLOBAL_CHAR = 'gChar'
-LOCAL_INT = 'lInt'
-LOCAL_FLOAT = 'lFloat'
-LOCAL_CHAR = 'lChar'
-TEMPORAL_INT = 'tInt'
-TEMPORAL_FLOAT = 'tFloat'
-TEMPORAL_CHAR = 'tChar'
-CONSTANT_INT = 'cInt'
-CONSTANT_FLOAT = 'cFloat'
-CONSTANT_CHAR = 'cChar'
-VOID = 'void'
+from constants import *
 
 types = {
     GLOBAL_INT: 1000,
@@ -28,12 +16,23 @@ types = {
     VOID: 13000
 }
 
+memory = {}
 
-def getNextAddress(mem, offset=1):
-    current = types[mem]
+
+def getNextAddress(mem, offset=1, value=None, valType=None):
+    current_address = types[mem]
+    # parse value
+    if valType == INT:
+        value = int(value)
+    elif valType == FLOAT:
+        value = float(value)
+
+    # if value store value
+    if valType != None and value != None:
+        memory[current_address] = value
     types[mem] = types[mem] + offset
     if types[mem] % 1000 != 0:
-        return current
+        return current_address
     else:
         raise MemoryError
 

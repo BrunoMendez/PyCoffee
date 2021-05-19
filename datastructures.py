@@ -1,4 +1,5 @@
 from collections import deque
+from constants import *
 
 
 # Una pila LIFO con los metodos basicos
@@ -55,50 +56,48 @@ class Queue:
 
 semanticCube = {}
 
-types = ["error", "int", "float", "char", None]
+types = [ERROR, INT, FLOAT, CHAR, None]
 
 operator = [
     "+", "-", "*", "/", ">", "<", ">=", "<=", "==", "<>", "and", "or", "="
 ]
 
+# INCLUDE NOT!!
 for i in types:  # Left operand
     for j in types:  # Right operand
         for k in operator:  # Operators
-            if (i == "error" or j == "error" or i == None or j == None
+            if (i == ERROR or j == ERROR or i == None or j == None
                     or k == None):
-                semanticCube[(i, j, k)] = "error"
-            elif (i == "int" and j == "int"):
-                semanticCube[(i, j, k)] = "int"
-            elif (i == "float" and j == "float"):
+                semanticCube[(i, j, k)] = ERROR
+            elif (i == INT and j == INT):
+                semanticCube[(i, j, k)] = INT
+            elif (i == FLOAT and j == FLOAT):
                 if (k in ["+", "-", "*", "/", "="]):
-                    semanticCube[(i, j, k)] = "float"
-                elif (k in ["and", "or"]):
-                    semanticCube[(i, j, k)] = "error"
+                    semanticCube[(i, j, k)] = FLOAT
+                elif (k in [AND, OR]):
+                    semanticCube[(i, j, k)] = ERROR
                 else:
-                    semanticCube[(i, j, k)] = "int"
-            elif (i == "char" and j == "char"):
+                    semanticCube[(i, j, k)] = INT
+            elif (i == CHAR and j == CHAR):
                 if (k in ["<>", "=="]):
-                    semanticCube[(i, j, k)] = "int"
+                    semanticCube[(i, j, k)] = INT
                 elif (k == "="):
-                    semanticCube[(i, j, k)] = "char"
+                    semanticCube[(i, j, k)] = CHAR
                 else:
-                    semanticCube[(i, j, k)] = "error"
-            elif ((i == "int" and j == "float")
-                  or (i == "float" and j == "int")):
+                    semanticCube[(i, j, k)] = ERROR
+            elif ((i == INT and j == FLOAT) or (i == FLOAT and j == INT)):
                 if (k in ["+", "-", "*", "/"]):
-                    semanticCube[(i, j, k)] = "float"
-                elif (k in ["and", "or", "="]):
-                    semanticCube[(i, j, k)] = "error"
+                    semanticCube[(i, j, k)] = FLOAT
+                elif (k in [AND, OR, "="]):
+                    semanticCube[(i, j, k)] = ERROR
                 else:
-                    semanticCube[(i, j, k)] = "int"
-            elif ((i == "int" and j == "char")
-                  or (i == "char" and j == "int")):
-                semanticCube[(i, j, k)] = "error"
-            elif ((i == "float" and j == "char")
-                  or (i == "char" and j == "float")):
-                semanticCube[(i, j, k)] = "error"
+                    semanticCube[(i, j, k)] = INT
+            elif ((i == INT and j == CHAR) or (i == CHAR and j == INT)):
+                semanticCube[(i, j, k)] = ERROR
+            elif ((i == FLOAT and j == CHAR) or (i == CHAR and j == FLOAT)):
+                semanticCube[(i, j, k)] = ERROR
             else:
-                semanticCube[(i, j, k)] = "error"
+                semanticCube[(i, j, k)] = ERROR
 
 
 class Quadruple():
@@ -111,6 +110,8 @@ class Quadruple():
     def __str__(self):
         return (str(self.operator) + " " + str(self.leftOperand) + " " +
                 str(self.rightOperand) + " " + str(self.result))
-    
+
     def generateLista(self):
-        return [self.operator, self.leftOperand, self.rightOperand, self.result]
+        return [
+            self.operator, self.leftOperand, self.rightOperand, self.result
+        ]
