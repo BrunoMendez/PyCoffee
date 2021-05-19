@@ -12,11 +12,9 @@ from datastructures import *
 from memory import *
 from constants import *
 import vm
-
 tokens = lexer.tokens
-from flask import Flask, request
+from flask import *
 from flask_cors import CORS
-from flask import jsonify
 
 app = Flask(__name__)
 currentScope = GLOBAL_SCOPE
@@ -919,11 +917,6 @@ def initAll():
 
 # Constructor del parser
 parser = yacc.yacc()
-
-# pasar archivo de entrada
-filename = sys.argv[-1]
-f = open(filename, "r")
-
 # parsear archivo
 app = Flask(__name__)
 CORS(app)
