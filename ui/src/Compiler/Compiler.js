@@ -11,8 +11,7 @@ const Compiler = () => {
 
 	const submit = (event) => {
 		event.preventDefault();
-		let url = "http://127.0.0.1:5000/compile";
-		// let resetUrl = "http://127.0.0.1:5000/compile-reset";
+		let url = "https://pycoffeecompiler.herokuapp.com/compile";
 		let API_TOKEN = "ELDA";
 		let data = {
 			codigo: input,
@@ -63,8 +62,7 @@ const Compiler = () => {
 	const sendInput = (event) => {
 		event.preventDefault();
 		setInputLabel("");
-		let url = "http://127.0.0.1:5000/user-input";
-		// let resetUrl = "http://127.0.0.1:5000/compile-reset";
+		let url = "https://pycoffeecompiler.herokuapp.com/user-input";
 		let API_TOKEN = "ELDA";
 		console.log(userInputRef.current.value);
 		let data = {
