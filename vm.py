@@ -5,12 +5,9 @@ from constants import *
 
 
 def start(quadruples, currentQuad=0, inputValue=None):
-    print(currentQuad, inputValue)
-    print("$$$$$")
     outputCount = 0
     output = {}
     while currentQuad < len(quadruples):
-        print(currentQuad)
         quad = quadruples[currentQuad]
         operator = quad.operator
         leftOperand = quad.leftOperand
@@ -62,9 +59,4 @@ def start(quadruples, currentQuad=0, inputValue=None):
             output[outputCount] = "FIN!"
             return output
         currentQuad += 1
-        print("$$$")
-        print(memory)
-        print("@@@")
-        print(quad)
-        print("###")
     return output

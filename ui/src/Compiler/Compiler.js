@@ -6,25 +6,12 @@ const Compiler = () => {
 	const [input, setInput] = useState("");
 	const [result, setResult] = useState("");
 	const userInputRef = useRef();
+	const formRef = useRef();
+	const [isWaitingForInput, setIsWaitingForInput] = useState(false);
 	const [inputLabel, setInputLabel] = useState("");
 	const [currentQuad, setCurrentQuad] = useState(0);
 
-	const submit = (event) => {
-		event.preventDefault();
-		let url = "https://pycoffeecompiler.herokuapp.com/compile";
-		let API_TOKEN = "ELDA";
-		let data = {
-			codigo: input,
-		};
-		console.log(data);
-		let settings = {
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${API_TOKEN}`,
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify(data),
-		};
+	const fetchUrl = (url, settings) => {
 		fetch(url, settings)
 			.then((response) => {
 				console.log(response);
@@ -41,6 +28,7 @@ const Compiler = () => {
 						if (Array.isArray(responseJSON[key])) {
 							if ((responseJSON[key][0] = "INPUT_REQUEST")) {
 								setCurrentQuad(responseJSON[key][1]);
+								setIsWaitingForInput(true);
 								userInputRef.current.focus();
 								setInputLabel(
 									"Ingrese un valor y presione respond"
@@ -51,18 +39,38 @@ const Compiler = () => {
 						}
 					}
 				}
-				setResult(tempOutput);
+				setResult((prevState) => prevState + tempOutput);
 				return responseJSON;
 			})
 			.catch((err) => {
 				console.log(err);
 			});
 	};
+	const submit = (event) => {
+		event.preventDefault();
+		let url = "http://127.0.0.1:5000/compile";
+		let API_TOKEN = "ELDA";
+		let data = {
+			codigo: input,
+		};
+		console.log(data);
+		let settings = {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${API_TOKEN}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(data),
+		};
+		fetchUrl(url, settings);
+		setResult("");
+	};
 
 	const sendInput = (event) => {
 		event.preventDefault();
 		setInputLabel("");
-		let url = "https://pycoffeecompiler.herokuapp.com/user-input";
+		setIsWaitingForInput(false);
+		let url = "http://127.0.0.1:5000/user-input";
 		let API_TOKEN = "ELDA";
 		console.log(userInputRef.current.value);
 		let data = {
@@ -78,36 +86,10 @@ const Compiler = () => {
 			},
 			body: JSON.stringify(data),
 		};
-		fetch(url, settings)
-			.then((response) => {
-				console.log(response);
-				if (response.ok) {
-					return response.json();
-				}
-				throw new Error(response.statusText);
-			})
-			.then((responseJSON) => {
-				console.log(responseJSON);
-				userInputRef.current.value = "";
-				let tempOutput = "";
-				for (let key in responseJSON) {
-					if (responseJSON.hasOwnProperty(key)) {
-						if (Array.isArray(responseJSON[key])) {
-							if ((responseJSON[key][0] = "INPUT_REQUEST")) {
-								setCurrentQuad(responseJSON[key][1]);
-								userInputRef.current.focus();
-							}
-						}
-						tempOutput += `${responseJSON[key]}\n`;
-					}
-				}
-				setResult(tempOutput);
-				return responseJSON;
-			})
-			.catch((err) => {
-				console.log(err);
-			});
+		fetchUrl(url, settings);
+		userInputRef.current.value = "";
 	};
+
 	return (
 		<Container id='formContainer'>
 			<Form id='formEmpresa' noValidate onSubmit={submit}>
@@ -120,6 +102,7 @@ const Compiler = () => {
 								rows={30}
 								value={input}
 								onChange={(e) => setInput(e.target.value)}
+								disabled={isWaitingForInput}
 							/>
 						</Form.Group>
 					</Col>
@@ -137,11 +120,18 @@ const Compiler = () => {
 				</Row>
 				<Row>
 					<Form.Group>
-						<Button type='submit'>Compile</Button>
+						<Button type='submit' disabled={isWaitingForInput}>
+							Compile
+						</Button>
 					</Form.Group>
 				</Row>
 			</Form>
-			<Form id='formEmpresa' noValidate onSubmit={sendInput}>
+			<Form
+				id='formEmpresa'
+				noValidate
+				onSubmit={sendInput}
+				ref={formRef}
+			>
 				<Row>
 					<Col>
 						<Form.Label>{inputLabel}</Form.Label>
@@ -149,15 +139,23 @@ const Compiler = () => {
 							<Form.Label>User Input</Form.Label>
 							<Form.Control
 								as='textarea'
-								rows={10}
+								rows={2}
 								ref={userInputRef}
+								disabled={!isWaitingForInput}
+								onKeyPress={(e) => {
+									if (e.charCode === 13) {
+										sendInput(e);
+									}
+								}}
 							/>
 						</Form.Group>
 					</Col>
 				</Row>
 				<Row>
 					<Form.Group>
-						<Button type='submit'>Respond</Button>
+						<Button type='submit' disabled={!isWaitingForInput}>
+							Respond
+						</Button>
 					</Form.Group>
 				</Row>
 			</Form>

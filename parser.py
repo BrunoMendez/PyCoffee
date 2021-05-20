@@ -3,9 +3,7 @@
 # bug report ----> si no especificas la variable arriba del programa se queda esperando y no arroja ningun resultado
 # hacer algo para que si se pone una variable que no existe en la tabla regresar un error(variable not declared!)
 # no estamos pasando el tipo de la variable al typeStack
-from os import error, strerror
 import ply.yacc as yacc
-import sys
 import lexer
 from errors import *
 from datastructures import *
@@ -35,7 +33,6 @@ forStack = Stack()
 quadruples = []
 function_id = ""
 function_type = ""
-countRuns = 0
 
 
 def convert_type(idType, scope):
@@ -861,6 +858,7 @@ def p_addFloat(p):
 
 def p_addInt(p):
     'addInt :'
+    print("addInt")
     address = getNextAddress(CONSTANT_INT, value=p[-1], valType=INT)
     operandStack.push(address)
     typeStack.push(INT)
@@ -875,12 +873,14 @@ def p_addChar(p):
 
 # Manejo de errores
 def p_error(p):
-    print("Syntax error at line %d, token=%s, value=%s col=%s" %
-          (p.lineno, p.type, p.value, p.lexpos))
-    exit()
+    error = ("Syntax error at line %d, token=%s, value=%s col=%s" %
+             (p.lineno, p.type, p.value, p.lexpos))
+    print(error)
+    raise CustomSyntaxError(error)
 
 
 def initAll():
+    global currentScope
     global quadruples
     global functionDirectory
     global variableTable
@@ -897,6 +897,8 @@ def initAll():
     global forStack
     global function_id
     global function_type
+    global memory
+    currentScope = GLOBAL_SCOPE
     functionDirectory = {}
     variableTable = {}
     paramTable = {}
@@ -913,6 +915,7 @@ def initAll():
     quadruples = []
     function_id = ""
     function_type = ""
+    memory = {}
     resetAll()
 
 
@@ -930,38 +933,31 @@ def root():
 
 @app.route('/compile', methods=["POST"])
 def compile():
-    print("@@@")
     content = request.get_json()
-    global countRuns
-    countRuns = countRuns + 1
-    if countRuns > 1:
-        initAll()
+    initAll()
     # Here we will pass to the vm
     # and return the result of the vm to the front
     try:
         parser.parse(content['codigo'])
-        print('////', len(quadruples))
         # [bug] if you make a mistake and then push a correct code, then it wont print the vm
         return vm.start(quadruples)
     except Exception as e:
-        errors = {1: str(e)}
+        print("Error", e)
+        errors = {1: "Error: " + str(e)}
         return errors
 
 
 @app.route('/user-input', methods=["POST"])
 def userInput():
-    print("@@@")
     content = request.get_json()
-    print(content)
     try:
         # [bug] if you make a mistake and then push a correct code, then it wont print the vm
-        print("$$")
         return vm.start(quadruples,
                         currentQuad=content[CURRENT_QUAD],
                         inputValue=content[INPUT_VALUE])
     except Exception as e:
-        print(e)
-        errors = {1: str(e)}
+        print("Error", e)
+        errors = {1: "Error: " + str(e)}
         return errors
 
 
