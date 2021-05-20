@@ -7,7 +7,7 @@ import ply.yacc as yacc
 import lexer
 from errors import *
 from datastructures import *
-from memory import *
+import memory
 from constants import *
 import vm
 
@@ -72,7 +72,8 @@ precedence = (
 # Definicion de reglas de la gramatica
 def p_program(p):
     'program : PROGRAM ID createGlobalTables SEMICOLON vars functions MAIN LPAREN RPAREN mainStart block'
-    functionDirectory[GLOBAL_SCOPE][FUNCTION_TEMP_COUNT] = resetTemporals()
+    functionDirectory[GLOBAL_SCOPE][
+        FUNCTION_TEMP_COUNT] = memory.resetTemporals()
     functionDirectory[GLOBAL_SCOPE][FUNCTION_VAR_COUNT] = len(
         variableTable[GLOBAL_SCOPE])
     endQuad = Quadruple(END_PROG, None, None, None)
@@ -127,13 +128,13 @@ def p_addVars(p):
                 raise VarAlreadyInTable
             address = ""
             if (currentScope == GLOBAL_SCOPE):
-                address = getNextAddress(convert_type(currentType,
-                                                      GLOBAL_SCOPE),
-                                         offset=var[R])
+                address = memory.getNextAddress(convert_type(
+                    currentType, GLOBAL_SCOPE),
+                                                offset=var[R])
             else:
-                address = getNextAddress(convert_type(currentType,
-                                                      LOCAL_SCOPE),
-                                         offset=var[R])
+                address = memory.getNextAddress(convert_type(
+                    currentType, LOCAL_SCOPE),
+                                                offset=var[R])
             variableTable[currentScope][var[ID]] = {
                 TYPE: currentType,
                 ADDRESS: address,
@@ -151,11 +152,11 @@ def p_addVars(p):
                 raise VarAlreadyInTable
             address = ""
             if (currentScope == GLOBAL_SCOPE):
-                address = getNextAddress(
+                address = memory.getNextAddress(
                     convert_type(currentType, GLOBAL_SCOPE))
             else:
-                address = getNextAddress(convert_type(currentType,
-                                                      LOCAL_SCOPE))
+                address = memory.getNextAddress(
+                    convert_type(currentType, LOCAL_SCOPE))
             variableTable[currentScope][var] = {
                 TYPE: currentType,
                 ADDRESS: address,
@@ -171,10 +172,12 @@ def p_addFunction2(p):
             raise VarAlreadyInTable
         else:
             variableTable[currentScope][var] = {
-                TYPE: currentType,
-                ADDRESS: getNextAddress(convert_type(currentType,
-                                                     LOCAL_SCOPE)),
-                IS_ARRAY: False
+                TYPE:
+                currentType,
+                ADDRESS:
+                memory.getNextAddress(convert_type(currentType, LOCAL_SCOPE)),
+                IS_ARRAY:
+                False
             }
             paramTable[currentScope][var] = {TYPE: currentType}
 
@@ -300,8 +303,9 @@ def p_returnType(p):
 def p_function(p):
     'function : returnType FUNCTION ID addFunction1 LPAREN params RPAREN addFunction3 vars addFunction4 block'
     global currentScope
-    functionDirectory[currentScope][FUNCTION_TEMP_COUNT] = resetTemporals()
-    functionDirectory[currentScope][FUNCTION_VAR_COUNT] = resetLocals()
+    functionDirectory[currentScope][
+        FUNCTION_TEMP_COUNT] = memory.resetTemporals()
+    functionDirectory[currentScope][FUNCTION_VAR_COUNT] = memory.resetLocals()
     del variableTable[currentScope]
     currentScope = GLOBAL_SCOPE
     if (function_type != VOID and (not hasReturn)):
@@ -332,7 +336,7 @@ def p_addFunction1(p):
     paramTable[currentScope] = {}
     functionDirectory[currentScope] = {}
     functionDirectory[currentScope][TYPE] = currentType
-    functionDirectory[currentScope][ADDRESS] = getNextAddress(
+    functionDirectory[currentScope][ADDRESS] = memory.getNextAddress(
         convert_type(currentType, GLOBAL_SCOPE))
     variableTable[currentScope] = {}
     function_id = currentScope
@@ -341,9 +345,12 @@ def p_addFunction1(p):
         if (function_id in variableTable[GLOBAL_SCOPE]):
             raise VarAlreadyInTable
         variableTable[GLOBAL_SCOPE][function_id] = {
-            TYPE: function_type,
-            ADDRESS: getNextAddress(convert_type(function_type, GLOBAL_SCOPE)),
-            IS_ARRAY: False
+            TYPE:
+            function_type,
+            ADDRESS:
+            memory.getNextAddress(convert_type(function_type, GLOBAL_SCOPE)),
+            IS_ARRAY:
+            False
         }
 
 
@@ -459,7 +466,7 @@ def p_callFunction4(p):
     function_id = operandStack.pop()
     idType = typeStack.pop()
     if paramCounter + 1 == len(paramTable[function_id]):
-        result = getNextAddress(convert_type(idType, TEMPORAL_SCOPE))
+        result = memory.getNextAddress(convert_type(idType, TEMPORAL_SCOPE))
         quad = Quadruple(GOSUB, functionDirectory[function_id][ADDRESS], None,
                          functionDirectory[function_id][FUNCTION_QUAD_INDEX])
         quadruples.append(quad)
@@ -631,7 +638,8 @@ def p_addAndOr(p):
         leftOperand = operandStack.pop()
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != ERROR:
-            result = getNextAddress(convert_type(resultType, TEMPORAL_SCOPE))
+            result = memory.getNextAddress(
+                convert_type(resultType, TEMPORAL_SCOPE))
             quadruples.append(
                 Quadruple(operator, leftOperand, rightOperand, result))
             operandStack.push(result)
@@ -648,7 +656,8 @@ def p_addNot(p):
         opType = typeStack.pop()
         operand = operandStack.pop()
         if (opType == INT):
-            result = getNextAddress(convert_type(opType, TEMPORAL_SCOPE))
+            result = memory.getNextAddress(convert_type(
+                opType, TEMPORAL_SCOPE))
             quadruples.append(Quadruple(operator, operand, None, result))
             operandStack.push(result)
             typeStack.push(INT)
@@ -667,7 +676,8 @@ def p_addExp(p):
         leftOperand = operandStack.pop()
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != ERROR:
-            result = getNextAddress(convert_type(resultType, TEMPORAL_SCOPE))
+            result = memory.getNextAddress(
+                convert_type(resultType, TEMPORAL_SCOPE))
             quadruples.append(
                 Quadruple(operator, leftOperand, rightOperand, result))
             operandStack.push(result)
@@ -687,7 +697,8 @@ def p_addTerm(p):
         leftOperand = operandStack.pop()
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != ERROR:
-            result = getNextAddress(convert_type(resultType, TEMPORAL_SCOPE))
+            result = memory.getNextAddress(
+                convert_type(resultType, TEMPORAL_SCOPE))
             quadruple = Quadruple(operator, leftOperand, rightOperand, result)
             quadruples.append(quadruple)
             operandStack.push(result)
@@ -707,7 +718,8 @@ def p_addFactor(p):
         leftOperand = operandStack.pop()
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != ERROR:
-            result = getNextAddress(convert_type(resultType, TEMPORAL_SCOPE))
+            result = memory.getNextAddress(
+                convert_type(resultType, TEMPORAL_SCOPE))
             quadruple = Quadruple(operator, leftOperand, rightOperand, result)
             quadruples.append(quadruple)
             operandStack.push(result)
@@ -808,7 +820,7 @@ def p_addFor2(p):
     rightOperand = operandStack.pop()
     leftOperand = operandStack.pop()
     if rightType == INT and leftType == INT:
-        result = getNextAddress(TEMPORAL_INT)
+        result = memory.getNextAddress(TEMPORAL_INT)
         quadruples.append(
             Quadruple(operator, leftOperand, rightOperand, result))
         jumpStack.push(len(quadruples) - 1)
@@ -830,7 +842,8 @@ def p_addFor3(p):
     rightType = INT
     resultType = semanticCube[(leftType, rightType, operator)]
     if leftType == INT:
-        result = getNextAddress(convert_type(resultType, TEMPORAL_SCOPE))
+        result = memory.getNextAddress(convert_type(resultType,
+                                                    TEMPORAL_SCOPE))
         quadruple = Quadruple(operator, leftSide, rightSide, result)
         quadruples.append(quadruple)
         quadrupleAssign = Quadruple('=', result, None, leftSide)
@@ -851,7 +864,7 @@ def p_addFor3(p):
 # getConvertedOperant is not necessary now!
 def p_addFloat(p):
     'addFloat :'
-    address = getNextAddress(CONSTANT_FLOAT, value=p[-1], valType=FLOAT)
+    address = memory.getNextAddress(CONSTANT_FLOAT, value=p[-1], valType=FLOAT)
     operandStack.push(address)
     typeStack.push(FLOAT)
 
@@ -859,14 +872,14 @@ def p_addFloat(p):
 def p_addInt(p):
     'addInt :'
     print("addInt")
-    address = getNextAddress(CONSTANT_INT, value=p[-1], valType=INT)
+    address = memory.getNextAddress(CONSTANT_INT, value=p[-1], valType=INT)
     operandStack.push(address)
     typeStack.push(INT)
 
 
 def p_addChar(p):
     'addChar :'
-    address = getNextAddress(CONSTANT_CHAR, value=p[-1], valType=CHAR)
+    address = memory.getNextAddress(CONSTANT_CHAR, value=p[-1], valType=CHAR)
     operandStack.push(address)
     typeStack.push(CHAR)
 
@@ -897,7 +910,6 @@ def initAll():
     global forStack
     global function_id
     global function_type
-    global memory
     currentScope = GLOBAL_SCOPE
     functionDirectory = {}
     variableTable = {}
@@ -915,8 +927,8 @@ def initAll():
     quadruples = []
     function_id = ""
     function_type = ""
-    memory = {}
-    resetAll()
+    memory.memory_table = {}
+    memory.resetAll()
 
 
 # Constructor del parser

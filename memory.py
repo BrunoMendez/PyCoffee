@@ -16,7 +16,7 @@ types = {
     VOID: 13000
 }
 
-memory = {}
+memory_table = {}
 
 
 def getNextAddress(mem, offset=1, value=None, valType=None):
@@ -29,7 +29,7 @@ def getNextAddress(mem, offset=1, value=None, valType=None):
 
     # if value store value
     if valType != None and value != None:
-        memory[current_address] = value
+        memory_table[current_address] = value
     types[mem] = types[mem] + offset
     if types[mem] % 1000 != 0:
         return current_address
@@ -61,6 +61,7 @@ def resetLocals():
 
 def resetAll():
     global types
+    global memory_table
     types = {
         GLOBAL_INT: 1000,
         GLOBAL_FLOAT: 2000,
@@ -76,3 +77,16 @@ def resetAll():
         CONSTANT_CHAR: 12000,
         VOID: 13000
     }
+    memory_table = {}
+
+
+def getValue(address):
+    return memory_table[address]
+
+
+def setValue(address, value):
+    memory_table[address] = value
+
+
+def printMem():
+    print("Memory:", memory_table)

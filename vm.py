@@ -1,12 +1,13 @@
 from typing import Type
 from errors import TypeMismatchError
-from memory import *
+import memory
 from constants import *
 
 
 def start(quadruples, currentQuad=0, inputValue=None):
     outputCount = 0
     output = {}
+    memory.printMem()
     while currentQuad < len(quadruples):
         quad = quadruples[currentQuad]
         operator = quad.operator
@@ -14,21 +15,25 @@ def start(quadruples, currentQuad=0, inputValue=None):
         rightOperand = quad.rightOperand
         quad_result = quad.result
         if operator == "+":
-            result = memory[leftOperand] + memory[rightOperand]
-            memory[quad_result] = result
+            result = memory.getValue(leftOperand) + memory.getValue(
+                rightOperand)
+            memory.setValue(quad_result, result)
         elif operator == "-":
-            result = memory[leftOperand] - memory[rightOperand]
-            memory[quad_result] = result
+            result = memory.getValue(leftOperand) - memory.getValue(
+                rightOperand)
+            memory.setValue(quad_result, result)
         elif operator == "/":
-            result = memory[leftOperand] / memory[rightOperand]
-            memory[quad_result] = result
+            result = memory.getValue(leftOperand) / memory.getValue(
+                rightOperand)
+            memory.setValue(quad_result, result)
         elif operator == "*":
-            result = memory[leftOperand] * memory[rightOperand]
-            memory[quad_result] = result
+            result = memory.getValue(leftOperand) * memory.getValue(
+                rightOperand)
+            memory.setValue(quad_result, result)
         elif operator == '=':
-            memory[quad_result] = memory[leftOperand]
+            memory.setValue(quad_result, memory.getValue(leftOperand))
         elif operator == PRINT_EXP:
-            output[outputCount] = memory[quad_result]
+            output[outputCount] = memory.getValue(quad_result)
             outputCount += 1
         elif operator == PRINT_STR:
             output[outputCount] = quad_result
@@ -47,7 +52,7 @@ def start(quadruples, currentQuad=0, inputValue=None):
                 except ValueError:
                     output[outputCount] = "Type mismatch error"
                     return output
-                memory[quad_result] = inputValue
+                memory.setValue(quad_result, inputValue)
                 inputValue = None
             else:
                 output[outputCount] = [INPUT_REQUEST, currentQuad]
