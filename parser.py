@@ -310,8 +310,7 @@ def p_function(p):
     currentScope = GLOBAL_SCOPE
     if (function_type != VOID and (not hasReturn)):
         raise NonVoidFuncReturnMissing
-    elif not hasReturn and function_type == VOID:
-        quadruples.append(Quadruple(END_FUNC, None, None, None))
+    quadruples.append(Quadruple(END_FUNC, None, None, None))
 
 
 def p_addFunction4(p):
@@ -501,9 +500,7 @@ def p_return(p):
         raise TypeMismatchError
     else:
         quadruple = Quadruple(RETURN, None, None, result)
-        quadEndfunc = Quadruple(END_FUNC, None, None, None)
         quadruples.append(quadruple)
-        quadruples.append(quadEndfunc)
 
 
 def p_read(p):
