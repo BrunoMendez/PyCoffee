@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import { Form, Container, Row, Col, Button } from "react-bootstrap";
 import "./Compiler.css";
 import fetchAPI from '../helpers/request';
-let base_url = "https://pycoffeecompiler.herokuapp.com";
+let base_url = "https://pycoffeecompiler.herokuapp.com/";
 let API_TOKEN = "ELDA";
 const Compiler = () => {
 	const [input, setInput] = useState("");
