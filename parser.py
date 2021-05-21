@@ -397,7 +397,7 @@ def p_assignment(p):
 
 
 def p_write(p):
-    '''write : PRINT LPAREN writePrime RPAREN SEMICOLON'''
+    '''write : PRINT addOperator LPAREN writePrime RPAREN SEMICOLON'''
 
 
 def p_writePrime(p):
@@ -407,6 +407,7 @@ def p_writePrime(p):
 
 def p_printExpression(p):
     'printExpression :'
+    operatorStack.pop()
     typeStack.pop()
     quadruple = Quadruple(PRINT_EXP, None, None, operandStack.pop())
     quadruples.append(quadruple)
@@ -513,7 +514,7 @@ def p_return(p):
 
 
 def p_read(p):
-    'read : INPUT LPAREN readPrime RPAREN SEMICOLON'
+    'read : INPUT addOperator LPAREN readPrime RPAREN SEMICOLON'
 
 
 def p_readPrime(p):
@@ -522,6 +523,7 @@ def p_readPrime(p):
 
 def p_readVar(p):
     'readVar :'
+    operatorStack.pop()
     var = operandStack.pop()
     varType = typeStack.pop()
     quadruple = Quadruple(INPUT, varType, None, var)
@@ -812,7 +814,7 @@ def p_addFor1(p):
         # Preparacion para hacer la comparacion aver si entra al for
         operandStack.push(leftSide)
         typeStack.push(leftType)
-        operatorStack.push('==')
+        operatorStack.push('<=')
     else:
         # Error for loops must be ints
         raise TypeMismatchError
@@ -844,7 +846,7 @@ def p_addFor3(p):
     operator = operatorStack.pop()
     leftSide = operandStack.pop()
     leftType = typeStack.pop()
-    rightSide = '1'
+    rightSide = memory.getNextAddress(CONSTANT_INT, value='1', valType=INT)
     rightType = INT
     resultType = semanticCube[(leftType, rightType, operator)]
     if leftType == INT:
@@ -877,7 +879,6 @@ def p_addFloat(p):
 
 def p_addInt(p):
     'addInt :'
-    print("addInt")
     address = memory.getNextAddress(CONSTANT_INT, value=p[-1], valType=INT)
     operandStack.push(address)
     typeStack.push(INT)

@@ -46,10 +46,12 @@ class Queue:
 
     def size(self):
         return len(self.queue)
+
     def back(self):
         if len(self.queue) < 1:
             return None
         return self.queue.pop()
+
     def __str__(self):
         return str(list(self.queue))
 
@@ -65,7 +67,6 @@ operator = [
     "+", "-", "*", "/", ">", "<", ">=", "<=", "==", "<>", "and", "or", "="
 ]
 
-# INCLUDE NOT!!
 for i in types:  # Left operand
     for j in types:  # Right operand
         for k in operator:  # Operators
