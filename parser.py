@@ -17,7 +17,6 @@ tokens = lexer.tokens
 from flask import *
 from flask_cors import CORS
 
-app = Flask(__name__)
 currentScope = GLOBAL_SCOPE
 functionDirectory = {}
 variableTable = {}
@@ -61,7 +60,7 @@ def convert_type(idType, scope):
             return TEMPORAL_FLOAT
         if idType == CHAR:
             return TEMPORAL_CHAR
-    
+
     if scope == TEMPORAL_SCOPE and currentScope != GLOBAL_SCOPE:
         if idType == INT:
             return TEMPORAL_LOCAL_INT
