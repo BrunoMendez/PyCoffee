@@ -46,7 +46,10 @@ class Queue:
 
     def size(self):
         return len(self.queue)
-
+    def back(self):
+        if len(self.queue) < 1:
+            return None
+        return self.queue.pop()
     def __str__(self):
         return str(list(self.queue))
 

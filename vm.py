@@ -3,11 +3,13 @@ from errors import TypeMismatchError
 import memory
 from constants import *
 
+def isLocal(address):
+    return (address >= 4000 and address < 7000) or (address >= 14000 and address < 17000)
+
 
 def start(quadruples, currentQuad=0, inputValue=None):
     outputCount = 0
     output = {}
-    memory.printMem()
     while currentQuad < len(quadruples):
         quad = quadruples[currentQuad]
         operator = quad.operator

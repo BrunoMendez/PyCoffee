@@ -3,8 +3,10 @@
 # bug report ----> si no especificas la variable arriba del programa se queda esperando y no arroja ningun resultado
 # hacer algo para que si se pone una variable que no existe en la tabla regresar un error(variable not declared!)
 # no estamos pasando el tipo de la variable al typeStack
+from typing import Deque
 import ply.yacc as yacc
 import lexer
+from collections import deque
 from errors import *
 from datastructures import *
 import memory
@@ -20,7 +22,7 @@ currentScope = GLOBAL_SCOPE
 functionDirectory = {}
 variableTable = {}
 paramTable = {}
-varIds = Stack()
+varIds = Queue()
 currentType = ""
 checkFunction = False
 hasReturn = False
@@ -52,13 +54,21 @@ def convert_type(idType, scope):
             return LOCAL_FLOAT
         if idType == CHAR:
             return LOCAL_CHAR
-    if scope == TEMPORAL_SCOPE:
+    if scope == TEMPORAL_SCOPE and currentScope == GLOBAL_SCOPE:
         if idType == INT:
             return TEMPORAL_INT
         if idType == FLOAT:
             return TEMPORAL_FLOAT
         if idType == CHAR:
             return TEMPORAL_CHAR
+    
+    if scope == TEMPORAL_SCOPE and currentScope != GLOBAL_SCOPE:
+        if idType == INT:
+            return TEMPORAL_LOCAL_INT
+        if idType == FLOAT:
+            return TEMPORAL_LOCAL_FLOAT
+        if idType == CHAR:
+            return TEMPORAL_LOCAL_CHAR
     raise InvalidType
 
 
@@ -73,7 +83,7 @@ precedence = (
 def p_program(p):
     'program : PROGRAM ID createGlobalTables SEMICOLON vars functions MAIN LPAREN RPAREN mainStart block'
     functionDirectory[GLOBAL_SCOPE][
-        FUNCTION_TEMP_COUNT] = memory.resetTemporals()
+        FUNCTION_TEMP_COUNT] = memory.resetLocalTemporals()
     functionDirectory[GLOBAL_SCOPE][FUNCTION_VAR_COUNT] = len(
         variableTable[GLOBAL_SCOPE])
     endQuad = Quadruple(END_PROG, None, None, None)
@@ -121,7 +131,7 @@ def p_varsPrime(p):
 def p_addVars(p):
     'addVars :'
     while not varIds.empty():
-        var = varIds.pop()
+        var = varIds.dequeue()
         ## Nos dice si es un array
         if (type(var) is dict):
             if (var[ID] in variableTable[currentScope]):
@@ -167,7 +177,7 @@ def p_addVars(p):
 def p_addFunction2(p):
     'addFunction2 :'
     while not varIds.empty():
-        var = varIds.pop()
+        var = varIds.dequeue()
         if (var in variableTable[currentScope]):
             raise VarAlreadyInTable
         else:
@@ -204,27 +214,27 @@ def p_ids(p):
 
 def p_addId1(p):
     'addId1 :'
-    id = varIds.pop()
+    id = varIds.back()
     array = {ID: id, DIM: 1, LIM: int(p[-1])}
     array[R] = array[LIM]
     array[M1] = 1
-    varIds.push(array)
+    varIds.enqueue(array)
 
 
 def p_addId2(p):
     'addId2 :'
-    array = varIds.pop()
+    array = varIds.back()
     array[DIM] += 1
     array[LIM2] = int(p[-1])
     array[R] = array[LIM2] * array[R]
     array[M1] = array[LIM2]
     array[M2] = 1
-    varIds.push(array)
+    varIds.enqueue(array)
 
 
 def p_addId(p):
     'addId :'
-    varIds.push(p[-1])
+    varIds.enqueue(p[-1])
 
 
 def p_checkIfNotFunction(p):
@@ -304,7 +314,7 @@ def p_function(p):
     'function : returnType FUNCTION ID addFunction1 LPAREN params RPAREN addFunction3 vars addFunction4 block'
     global currentScope
     functionDirectory[currentScope][
-        FUNCTION_TEMP_COUNT] = memory.resetTemporals()
+        FUNCTION_TEMP_COUNT] = memory.resetLocalTemporals()
     functionDirectory[currentScope][FUNCTION_VAR_COUNT] = memory.resetLocals()
     del variableTable[currentScope]
     currentScope = GLOBAL_SCOPE
@@ -911,7 +921,7 @@ def initAll():
     functionDirectory = {}
     variableTable = {}
     paramTable = {}
-    varIds = Stack()
+    varIds = Queue()
     currentType = ""
     checkFunction = False
     hasReturn = False
@@ -947,8 +957,8 @@ def compile():
     # Here we will pass to the vm
     # and return the result of the vm to the front
     try:
-        parser.parse(content['codigo'])
         # [bug] if you make a mistake and then push a correct code, then it wont print the vm
+        parser.parse(content['codigo'])
         return vm.start(quadruples)
     except Exception as e:
         print("Error", e)
