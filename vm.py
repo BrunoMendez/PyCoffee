@@ -2,14 +2,13 @@ from typing import Type
 from errors import TypeMismatchError
 import memory
 from constants import *
-
-
-def isLocal(address):
-    return (address >= 4000 and address < 7000) or (address >= 14000
-                                                    and address < 17000)
+from datastructures import Stack
 
 
 def start(quadruples, currentQuad=0, inputValue=None):
+    instructionPointerStack = Stack()
+    resultAssignmentStack = Stack()
+    memoryStack = Stack()
     outputCount = 0
     output = {}
     while currentQuad < len(quadruples):
@@ -113,6 +112,25 @@ def start(quadruples, currentQuad=0, inputValue=None):
             print(memory.getValue(leftOperand))
             if memory.getValue(leftOperand) == 0:
                 currentQuad = quad_result - 1
+        elif operator == ERA:
+            memoryStack.push(memory.LocalMemory())
+        elif operator == END_FUNC:
+            memory.local_memory_stack.pop()
+            currentQuad = instructionPointerStack.pop()
+        elif operator == PARAMETER:
+            memory.assignParam(quad_result, leftOperand, memoryStack.top())
+        elif operator == GOSUB:
+            memory.local_memory_stack.push(memoryStack.pop())
+            instructionPointerStack.push(currentQuad)
+            if (memory.getType(leftOperand) != VOID):
+                resultAssignmentStack.push(leftOperand)
+            currentQuad = quad_result - 1
+        elif operator == RETURN:
+            functionAddress = resultAssignmentStack.pop()
+            valueAddress = quad_result
+            memory.setValue(functionAddress, valueAddress)
+            memory.local_memory_stack.pop()
+            currentQuad = instructionPointerStack.pop()
         elif operator == END_PROG:
             output[outputCount] = "FIN!"
             return output

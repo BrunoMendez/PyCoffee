@@ -53,6 +53,36 @@ global_memory = GlobalMemory()
 local_memory_stack = Stack()
 
 
+def getType(address):
+    if (1000 <= address <= 1999 or 4000 <= address <= 4999
+            or 7000 <= address <= 7999 or 10000 <= address <= 10999
+            or 14000 <= address <= 14999):
+        return INT
+    elif (2000 <= address <= 2999 or 5000 <= address <= 5999
+          or 8000 <= address <= 8999 or 11000 <= address <= 11999
+          or 15000 <= address <= 15999):
+        return FLOAT
+    elif (3000 <= address <= 3999 or 6000 <= address <= 6999
+          or 9000 <= address <= 9999 or 12000 <= address <= 12999
+          or 16000 <= address <= 16999):
+        return CHAR
+    elif 13000 <= address <= 13999:
+        return VOID
+
+
+def assignParam(paramNum, valueAddress, memory):
+    value = getValue(valueAddress)
+    valueType = getType(valueAddress)
+    setterAddress = paramNum
+    if valueType == INT:
+        setterAddress += 4000
+    elif valueType == FLOAT:
+        setterAddress += 5000
+    elif valueType == CHAR:
+        setterAddress += 6000
+    memory.setValue(setterAddress, value)
+
+
 def getNextAddress(mem, offset=1, value=None, valType=None):
     current_address = types[mem]
     # parse value
