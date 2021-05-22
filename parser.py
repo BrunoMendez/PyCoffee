@@ -956,9 +956,9 @@ def compile():
     initAll()
     # Here we will pass to the vm
     # and return the result of the vm to the front
+    parser.parse(content['codigo'])
     try:
         # [bug] if you make a mistake and then push a correct code, then it wont print the vm
-        parser.parse(content['codigo'])
         return vm.start(quadruples)
     except Exception as e:
         print("Error", e)

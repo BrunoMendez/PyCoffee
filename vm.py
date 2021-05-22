@@ -14,6 +14,8 @@ def start(quadruples, currentQuad=0, inputValue=None):
     while currentQuad < len(quadruples):
         quad = quadruples[currentQuad]
         print(quad)
+        print('!!!!!!!!!!!!!!!!!')
+        memory.global_memory.printMem()
         operator = quad.operator
         leftOperand = quad.leftOperand
         rightOperand = quad.rightOperand
@@ -101,7 +103,14 @@ def start(quadruples, currentQuad=0, inputValue=None):
                 except ValueError:
                     output[outputCount] = "Type mismatch error"
                     return output
-                memory.setValue(quad_result, inputValue)
+                # pasar los stacks aqui
+                # memory.setValue(quad_result, inputValue)
+                # instructionPointerStack.push(currentQuad)
+                # aqui no estoy seguro
+                # resultAssignmentStack.push(leftOperand)
+                # es necesario verificar el scope para ver si mandar el input
+                # a memoria local o global
+                # memoryStack
                 inputValue = None
             else:
                 output[outputCount] = [INPUT_REQUEST, currentQuad]
@@ -118,8 +127,9 @@ def start(quadruples, currentQuad=0, inputValue=None):
             memory.local_memory_stack.pop()
             currentQuad = instructionPointerStack.pop()
         elif operator == PARAMETER:
-            memory.assignParam(quad_result, leftOperand, memoryStack.top())
+            memoryStack.top().paramHelper(leftOperand)
         elif operator == GOSUB:
+            memoryStack.top().assignParam()
             memory.local_memory_stack.push(memoryStack.pop())
             instructionPointerStack.push(currentQuad)
             if (memory.getType(leftOperand) != VOID):
@@ -127,6 +137,7 @@ def start(quadruples, currentQuad=0, inputValue=None):
             currentQuad = quad_result - 1
         elif operator == RETURN:
             functionAddress = resultAssignmentStack.pop()
+            print('menso', functionAddress)
             valueAddress = quad_result
             memory.setValue(functionAddress, valueAddress)
             memory.local_memory_stack.pop()

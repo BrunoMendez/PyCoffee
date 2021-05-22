@@ -1,5 +1,5 @@
 program patito;
-var x,y,z, age, te: int; ch: char;
+var x,y,z, age, te: int;
 
 void function pelos(y: int, year: int)
 var x: int;

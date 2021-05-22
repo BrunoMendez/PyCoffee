@@ -1,5 +1,5 @@
 from constants import *
-from datastructures import Stack
+from datastructures import Queue, Stack
 
 types = {
     GLOBAL_INT: 1000,
@@ -24,7 +24,9 @@ types = {
 class LocalMemory():
     def __init__(self):
         self.memory = {}
-
+        self.paramInts = Queue()
+        self.paramFloats = Queue()
+        self.paramChars = Queue()
     def getValue(self, address):
         return self.memory[address]
 
@@ -33,8 +35,26 @@ class LocalMemory():
 
     def printMem(self):
         print(self.memory)
+    def paramHelper(self, valueAddress):
+        value = getValue(valueAddress)
+        valueType = getType(valueAddress)
+        if valueType == INT:
+            self.paramInts.enqueue(value)
+        elif valueType == FLOAT:
+            self.paramFloats.enqueue(value)
+        elif valueType == CHAR:
+            self.paramChars.enqueue(value)
 
-
+    def assignParam(self):
+        sizeInts = self.paramInts.size()
+        for index in range(0, sizeInts):
+            self.memory[index + 4000] = self.paramInts.dequeue()
+        sizeFloats = self.paramFloats.size()
+        for index in range(0, sizeFloats):
+            self.memory[index + 5000] = self.paramFloats.dequeue()
+        sizeChars = self.paramChars.size()
+        for index in range(0, sizeChars):
+            self.memory[index + 6000] = self.paramChars.dequeue()
 class GlobalMemory():
     def __init__(self):
         self.memory = {}
@@ -69,18 +89,6 @@ def getType(address):
     elif 13000 <= address <= 13999:
         return VOID
 
-
-def assignParam(paramNum, valueAddress, memory):
-    value = getValue(valueAddress)
-    valueType = getType(valueAddress)
-    setterAddress = paramNum
-    if valueType == INT:
-        setterAddress += 4000
-    elif valueType == FLOAT:
-        setterAddress += 5000
-    elif valueType == CHAR:
-        setterAddress += 6000
-    memory.setValue(setterAddress, value)
 
 
 def getNextAddress(mem, offset=1, value=None, valType=None):
