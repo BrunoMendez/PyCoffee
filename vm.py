@@ -14,8 +14,6 @@ def start(quadruples, currentQuad=0, inputValue=None):
     while currentQuad < len(quadruples):
         quad = quadruples[currentQuad]
         print(quad)
-        print('!!!!!!!!!!!!!!!!!')
-        memory.global_memory.printMem()
         operator = quad.operator
         leftOperand = quad.leftOperand
         rightOperand = quad.rightOperand
@@ -59,7 +57,6 @@ def start(quadruples, currentQuad=0, inputValue=None):
             result = 1 if result else 0
             memory.setValue(quad_result, result)
         elif operator == '==':
-            print(memory.getValue(leftOperand), memory.getValue(rightOperand))
             result = memory.getValue(leftOperand) == memory.getValue(
                 rightOperand)
             result = 1 if result else 0
@@ -118,7 +115,6 @@ def start(quadruples, currentQuad=0, inputValue=None):
         elif operator == GOTO:
             currentQuad = quad_result - 1
         elif operator == GOTOF:
-            print(memory.getValue(leftOperand))
             if memory.getValue(leftOperand) == 0:
                 currentQuad = quad_result - 1
         elif operator == ERA:
@@ -137,9 +133,9 @@ def start(quadruples, currentQuad=0, inputValue=None):
             currentQuad = quad_result - 1
         elif operator == RETURN:
             functionAddress = resultAssignmentStack.pop()
-            print('menso', functionAddress)
             valueAddress = quad_result
-            memory.setValue(functionAddress, valueAddress)
+            memory.setValue(functionAddress, memory.getValue(valueAddress))
+            memory.global_memory.printMem()
             memory.local_memory_stack.pop()
             currentQuad = instructionPointerStack.pop()
         elif operator == END_PROG:

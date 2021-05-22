@@ -438,6 +438,8 @@ def p_callFunction1(p):
     if checkFunction:
         checkFunction = False
         function_id = operandStack.top()
+        operatorStack.push("{")
+        print(operandStack)
         # Esto es temporal hasta tener memoria, le tenemos que pasar la cantidad de vars.
         quad = Quadruple(ERA, functionDirectory[function_id][ADDRESS], None,
                          None)
@@ -473,6 +475,7 @@ def p_callFunction4(p):
     'callFunction4 :'
     global paramCounter
     function_id = operandStack.pop()
+    operatorStack.pop()
     idType = typeStack.pop()
     if paramCounter + 1 == len(paramTable[function_id]):
         result = memory.getNextAddress(convert_type(idType, TEMPORAL_SCOPE))
@@ -956,9 +959,8 @@ def compile():
     initAll()
     # Here we will pass to the vm
     # and return the result of the vm to the front
-    parser.parse(content['codigo'])
     try:
-        # [bug] if you make a mistake and then push a correct code, then it wont print the vm
+        parser.parse(content['codigo'])
         return vm.start(quadruples)
     except Exception as e:
         print("Error", e)
@@ -970,7 +972,6 @@ def compile():
 def userInput():
     content = request.get_json()
     try:
-        # [bug] if you make a mistake and then push a correct code, then it wont print the vm
         return vm.start(quadruples,
                         currentQuad=content[CURRENT_QUAD],
                         inputValue=content[INPUT_VALUE])
