@@ -69,3 +69,12 @@ class CustomSyntaxError(Exception):
 
     def __str__(self):
         return self.message
+
+
+class OutOfBounds(Exception):
+    def __init__(self, message="Index out of bounds"):
+        self.message = message
+        super().__init__(self.message)
+
+    def __str__(self):
+        return self.message

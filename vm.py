@@ -1,5 +1,5 @@
 from typing import Type
-from errors import TypeMismatchError
+from errors import OutOfBounds, TypeMismatchError
 import memory
 from constants import *
 from datastructures import Stack
@@ -18,6 +18,13 @@ def start(quadruples, currentQuad=0, inputValue=None):
         leftOperand = quad.leftOperand
         rightOperand = quad.rightOperand
         quad_result = quad.result
+        if isinstance(leftOperand, str) and "(" in leftOperand:
+            leftOperand = memory.getValue(int(leftOperand[1:]))
+        if isinstance(rightOperand, str) and "(" in rightOperand:
+            rightOperand = memory.getValue(int(rightOperand[1:]))
+        if isinstance(quad_result, str) and "(" in quad_result:
+            quad_result = memory.getValue(int(quad_result[1:]))
+
         if operator == "+":
             result = memory.getValue(leftOperand) + memory.getValue(
                 rightOperand)
@@ -141,5 +148,10 @@ def start(quadruples, currentQuad=0, inputValue=None):
         elif operator == END_PROG:
             output[outputCount] = "FIN!"
             return output
+        elif operator == VERIFY_ARR:
+            s = memory.getValue(leftOperand)
+            lim = rightOperand
+            if not (0 <= s < lim):
+                raise OutOfBounds
         currentQuad += 1
     return output

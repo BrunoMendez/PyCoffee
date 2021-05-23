@@ -3,7 +3,6 @@
 # bug report ----> si no especificas la variable arriba del programa se queda esperando y no arroja ningun resultado
 # hacer algo para que si se pone una variable que no existe en la tabla regresar un error(variable not declared!)
 # no estamos pasando el tipo de la variable al typeStack
-from typing import Deque
 import ply.yacc as yacc
 import lexer
 from collections import deque
@@ -259,38 +258,98 @@ def p_addIdToStack(p):
     elif (varId in variableTable[currentScope]):
         varType = variableTable[currentScope][varId][TYPE]
         typeStack.push(varType)
-        # if (variableTable[currentScope][varId][IS_ARRAY]):
-        #     operandStack.push(varId)
-        # else:
-        operandStack.push(variableTable[currentScope][varId][ADDRESS])
+        if (variableTable[currentScope][varId][IS_ARRAY]):
+            operandStack.push(varId)
+        else:
+            operandStack.push(variableTable[currentScope][varId][ADDRESS])
     elif (varId in variableTable[GLOBAL_SCOPE]):
         varType = variableTable[GLOBAL_SCOPE][varId][TYPE]
         typeStack.push(varType)
-        # if (variableTable[currentScope][varId][IS_ARRAY]):
-        #     operandStack.push(varId)
-        # else:
-        operandStack.push(variableTable[GLOBAL_SCOPE][varId][ADDRESS])
+        if (variableTable[GLOBAL_SCOPE][varId][IS_ARRAY]):
+            operandStack.push(varId)
+        else:
+            operandStack.push(variableTable[GLOBAL_SCOPE][varId][ADDRESS])
     else:
         raise VarNotDefined
 
 
 def p_arrPos(p):
-    '''arrPos : LBRACKET exp RBRACKET
-                | LBRACKET exp RBRACKET LBRACKET exp RBRACKET'''
+    '''arrPos : LBRACKET addArr1 exp addArr2 RBRACKET addArr4
+                | LBRACKET addArr1 exp addArr2 RBRACKET LBRACKET addArr1 exp addArr3 RBRACKET addArr4'''
 
 
-# def p_addArr1(p):
-#     'addArr1 :'
-#     operatorStack.push("(")
+def p_addArr1(p):
+    'addArr1 :'
+    operatorStack.push(VERIFY_ARR)
+    operatorStack.push("+")
+    operatorStack.push("%")
 
-# def p_addArr2(p):
-#     'addArr2 :'
-#     exp = operandStack.pop()
-#     exp_type = typeStack.pop()
-#     id = operandStack.pop()
-#     id_type = typeStack.pop()
-#     Quadruple("<", exp,  )
-#     print(exp, exp_type, id, id_type)
+
+def p_addArr2(p):
+    'addArr2 :'
+    operatorStack.pop()
+    sumOp = operatorStack.pop()
+    verifyOp = operatorStack.pop()
+    expResult = operandStack.pop()
+    expType = typeStack.pop()
+    arrId = operandStack.top()
+    if expType == INT:
+        quad = Quadruple(verifyOp, expResult,
+                         variableTable[currentScope][arrId][LIM], None)
+        quadruples.append(quad)
+        if variableTable[currentScope][arrId][DIM] == 2:
+            sumOp = '*'
+            operand = LIM2
+        else:
+            operand = ADDRESS
+        assignResult = memory.getNextAddress(
+            CONSTANT_INT,
+            value=variableTable[currentScope][arrId][operand],
+            valType=INT)
+        result = memory.getNextAddress(convert_type(INT, TEMPORAL_SCOPE))
+        quad = Quadruple(sumOp, expResult, assignResult, result)
+        quadruples.append(quad)
+        operandStack.push(result)
+        typeStack.push(INT)
+    else:
+        raise TypeMismatchError
+
+
+def p_addArr3(p):
+    'addArr3 :'
+    sumOp = operatorStack.pop()
+    verifyOp = operatorStack.pop()
+    operatorStack.pop()
+
+    prevResult = operandStack.pop()
+    typeStack.pop()
+
+    expResult = operandStack.pop()
+    expType = typeStack.pop()
+
+    if expType == INT:
+        arrId = operandStack.top()
+        quad = Quadruple(verifyOp, expResult,
+                         variableTable[currentScope][arrId][LIM2], None)
+        quadruples.append(quad)
+        result = memory.getNextAddress(convert_type(INT, TEMPORAL_SCOPE))
+        quad = Quadruple(sumOp, expResult, prevResult, result)
+        quadruples.append(quad)
+        operandStack.push(result)
+        typeStack.push(INT)
+    else:
+        raise TypeMismatchError
+
+
+def p_addArr4(p):
+    'addArr4 :'
+    address = operandStack.pop()
+    addressType = typeStack.pop()
+    arrId = operandStack.pop()
+    arrType = typeStack.pop()
+    address = "(" + str(address)
+    operandStack.push(address)
+    typeStack.push(arrType)
 
 
 def p_type(p):
@@ -439,7 +498,6 @@ def p_callFunction1(p):
         checkFunction = False
         function_id = operandStack.top()
         operatorStack.push("{")
-        print(operandStack)
         # Esto es temporal hasta tener memoria, le tenemos que pasar la cantidad de vars.
         quad = Quadruple(ERA, functionDirectory[function_id][ADDRESS], None,
                          None)
