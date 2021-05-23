@@ -150,11 +150,9 @@ def p_addVars(p):
                 DIM: var[DIM],
                 SIZE: var[R],
                 LIM: var[LIM],
-                M1: var[M1]
             }
             if (var[DIM] > 1):
                 variableTable[currentScope][var[ID]][LIM2] = var[LIM2]
-                variableTable[currentScope][var[ID]][M2] = var[M2]
         else:
             if (var in variableTable[currentScope]):
                 raise VarAlreadyInTable
@@ -215,7 +213,6 @@ def p_addId1(p):
     id = varIds.back()
     array = {ID: id, DIM: 1, LIM: int(p[-1])}
     array[R] = array[LIM]
-    array[M1] = 1
     varIds.enqueue(array)
 
 
@@ -225,8 +222,6 @@ def p_addId2(p):
     array[DIM] += 1
     array[LIM2] = int(p[-1])
     array[R] = array[LIM2] * array[R]
-    array[M1] = array[LIM2]
-    array[M2] = 1
     varIds.enqueue(array)
 
 
@@ -282,11 +277,13 @@ def p_addArr1(p):
     'addArr1 :'
     operatorStack.push(VERIFY_ARR)
     operatorStack.push("+")
+    # Fake bottom
     operatorStack.push("%")
 
 
 def p_addArr2(p):
     'addArr2 :'
+    # pop fake bottom
     operatorStack.pop()
     sumOp = operatorStack.pop()
     verifyOp = operatorStack.pop()
@@ -317,23 +314,29 @@ def p_addArr2(p):
 
 def p_addArr3(p):
     'addArr3 :'
+    # Pop fake bottom
+    operatorStack.pop()
     sumOp = operatorStack.pop()
     verifyOp = operatorStack.pop()
-    operatorStack.pop()
-
-    prevResult = operandStack.pop()
-    typeStack.pop()
-
     expResult = operandStack.pop()
     expType = typeStack.pop()
-
+    prevResult = operandStack.pop()
+    typeStack.pop()
+    print("###", sumOp, verifyOp, expResult, expType, prevResult)
     if expType == INT:
         arrId = operandStack.top()
+        assignResult = memory.getNextAddress(
+            CONSTANT_INT,
+            value=variableTable[currentScope][arrId][LIM2],
+            valType=INT)
+        prevResult = memory.getNextAddress(CONSTANT_INT,
+                                           value=prevResult,
+                                           valType=INT)
         quad = Quadruple(verifyOp, expResult,
                          variableTable[currentScope][arrId][LIM2], None)
         quadruples.append(quad)
         result = memory.getNextAddress(convert_type(INT, TEMPORAL_SCOPE))
-        quad = Quadruple(sumOp, expResult, prevResult, result)
+        quad = Quadruple(sumOp, expResult, assignResult, result)
         quadruples.append(quad)
         operandStack.push(result)
         typeStack.push(INT)
@@ -456,17 +459,16 @@ def p_assignment(p):
 
 
 def p_write(p):
-    '''write : PRINT addOperator LPAREN writePrime RPAREN SEMICOLON'''
+    '''write : PRINT LPAREN writePrime RPAREN SEMICOLON'''
 
 
 def p_writePrime(p):
-    '''writePrime : expression printExpression writePrimePrime
+    '''writePrime : addFakeBottom expression popOperator printExpression writePrimePrime
                     | CST_STRING printString writePrimePrime'''
 
 
 def p_printExpression(p):
     'printExpression :'
-    operatorStack.pop()
     typeStack.pop()
     quadruple = Quadruple(PRINT_EXP, None, None, operandStack.pop())
     quadruples.append(quadruple)
@@ -476,6 +478,16 @@ def p_printString(p):
     'printString :'
     quadruple = Quadruple(PRINT_STR, None, None, p[-1])
     quadruples.append(quadruple)
+
+
+def p_popOperator(p):
+    'popOperator :'
+    operatorStack.pop()
+
+
+def p_addFakeBottom(p):
+    'addFakeBottom :'
+    operatorStack.push("$")
 
 
 def p_writePrimePrime(p):
@@ -904,6 +916,7 @@ def p_addFor2(p):
 
 def p_addFor3(p):
     'addFor3 :'
+    print("operatorStack", operatorStack)
     operator = operatorStack.pop()
     leftSide = operandStack.pop()
     leftType = typeStack.pop()
@@ -1017,8 +1030,8 @@ def compile():
     initAll()
     # Here we will pass to the vm
     # and return the result of the vm to the front
+    parser.parse(content['codigo'])
     try:
-        parser.parse(content['codigo'])
         return vm.start(quadruples)
     except Exception as e:
         print("Error", e)

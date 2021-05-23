@@ -142,7 +142,6 @@ def start(quadruples, currentQuad=0, inputValue=None):
             functionAddress = resultAssignmentStack.pop()
             valueAddress = quad_result
             memory.setValue(functionAddress, memory.getValue(valueAddress))
-            memory.global_memory.printMem()
             memory.local_memory_stack.pop()
             currentQuad = instructionPointerStack.pop()
         elif operator == END_PROG:
