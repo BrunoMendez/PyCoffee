@@ -3,6 +3,7 @@
 # bug report ----> si no especificas la variable arriba del programa se queda esperando y no arroja ningun resultado
 # hacer algo para que si se pone una variable que no existe en la tabla regresar un error(variable not declared!)
 # no estamos pasando el tipo de la variable al typeStack
+from typing import Type
 import ply.yacc as yacc
 import lexer
 from collections import deque
@@ -254,14 +255,14 @@ def p_addIdToStack(p):
         varType = variableTable[currentScope][varId][TYPE]
         typeStack.push(varType)
         if (variableTable[currentScope][varId][IS_ARRAY]):
-            operandStack.push(varId)
+            operandStack.push(variableTable[currentScope][varId])
         else:
             operandStack.push(variableTable[currentScope][varId][ADDRESS])
     elif (varId in variableTable[GLOBAL_SCOPE]):
         varType = variableTable[GLOBAL_SCOPE][varId][TYPE]
         typeStack.push(varType)
         if (variableTable[GLOBAL_SCOPE][varId][IS_ARRAY]):
-            operandStack.push(varId)
+            operandStack.push(variableTable[GLOBAL_SCOPE][varId])
         else:
             operandStack.push(variableTable[GLOBAL_SCOPE][varId][ADDRESS])
     else:
@@ -270,11 +271,33 @@ def p_addIdToStack(p):
 
 def p_arrPos(p):
     '''arrPos : LBRACKET addArr1 exp addArr2 RBRACKET addArr4
-                | LBRACKET addArr1 exp addArr2 RBRACKET LBRACKET addArr1 exp addArr3 RBRACKET addArr4'''
+                | LBRACKET addArr1 exp addArr2 RBRACKET LBRACKET addArr5 exp addArr3 RBRACKET addArr4'''
 
 
 def p_addArr1(p):
     'addArr1 :'
+    arrId = operandStack.top()
+    # Verifica que lo que hay en el stack es un diccionario de un array
+    if isinstance(arrId, dict):
+        print("dict")
+        if IS_ARRAY in arrId.keys():
+            print("keys")
+            if arrId[IS_ARRAY]:
+                print("array")
+                operatorStack.push(VERIFY_ARR)
+                operatorStack.push("+")
+                # Fake bottom
+                operatorStack.push("%")
+            else:
+                raise TypeMismatchError
+        else:
+            raise TypeMismatchError
+    else:
+        raise TypeMismatchError
+
+
+def p_addArr5(p):
+    'addArr5 :'
     operatorStack.push(VERIFY_ARR)
     operatorStack.push("+")
     # Fake bottom
@@ -291,18 +314,18 @@ def p_addArr2(p):
     expType = typeStack.pop()
     arrId = operandStack.top()
     if expType == INT:
-        quad = Quadruple(verifyOp, expResult,
-                         variableTable[currentScope][arrId][LIM], None)
+        quad = Quadruple(verifyOp, expResult, arrId[LIM], None)
         quadruples.append(quad)
-        if variableTable[currentScope][arrId][DIM] == 2:
+        # Si el arreglo es de 2 dimensiones hace lim2*S1
+        if arrId[DIM] == 2:
             sumOp = '*'
             operand = LIM2
+        #Si el arreglo es de 1 dimension hace AddressB+S1
         else:
             operand = ADDRESS
-        assignResult = memory.getNextAddress(
-            CONSTANT_INT,
-            value=variableTable[currentScope][arrId][operand],
-            valType=INT)
+        assignResult = memory.getNextAddress(CONSTANT_INT,
+                                             value=arrId[operand],
+                                             valType=INT)
         result = memory.getNextAddress(convert_type(INT, TEMPORAL_SCOPE))
         quad = Quadruple(sumOp, expResult, assignResult, result)
         quadruples.append(quad)
@@ -322,23 +345,24 @@ def p_addArr3(p):
     expType = typeStack.pop()
     prevResult = operandStack.pop()
     typeStack.pop()
-    print("###", sumOp, verifyOp, expResult, expType, prevResult)
     if expType == INT:
         arrId = operandStack.top()
-        assignResult = memory.getNextAddress(
-            CONSTANT_INT,
-            value=variableTable[currentScope][arrId][LIM2],
-            valType=INT)
-        prevResult = memory.getNextAddress(CONSTANT_INT,
-                                           value=prevResult,
-                                           valType=INT)
-        quad = Quadruple(verifyOp, expResult,
-                         variableTable[currentScope][arrId][LIM2], None)
+        baseAddress = memory.getNextAddress(CONSTANT_INT,
+                                            value=arrId[ADDRESS],
+                                            valType=INT)
+        # verifica que no este out of bounds
+        quad = Quadruple(verifyOp, expResult, arrId[LIM2], None)
         quadruples.append(quad)
+        # S2 + S1*LIM2
         result = memory.getNextAddress(convert_type(INT, TEMPORAL_SCOPE))
-        quad = Quadruple(sumOp, expResult, assignResult, result)
+        quad = Quadruple(sumOp, expResult, prevResult, result)
         quadruples.append(quad)
-        operandStack.push(result)
+        address_result = memory.getNextAddress(
+            convert_type(INT, TEMPORAL_SCOPE))
+        # (S2 + S1*Lim2) + baseAddress
+        quad = Quadruple(sumOp, result, baseAddress, address_result)
+        quadruples.append(quad)
+        operandStack.push(address_result)
         typeStack.push(INT)
     else:
         raise TypeMismatchError
@@ -350,6 +374,7 @@ def p_addArr4(p):
     addressType = typeStack.pop()
     arrId = operandStack.pop()
     arrType = typeStack.pop()
+    # Cambiar a pointer
     address = "(" + str(address)
     operandStack.push(address)
     typeStack.push(arrType)
