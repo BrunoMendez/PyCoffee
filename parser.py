@@ -525,7 +525,7 @@ def p_callVoidF(p):
 
 
 def p_callFunction(p):
-    '''callFunction : LPAREN callFunction1 expressions RPAREN callFunction4'''
+    '''callFunction : LPAREN callFunction1 expressions RPAREN callFunction3'''
 
 
 def p_callFunction1(p):
@@ -548,31 +548,32 @@ def p_callFunction1(p):
 
 def p_callFunction2(p):
     'callFunction2 :'
+    global paramCounter
+    paramCounter += 1
     argument = operandStack.pop()
     argumentType = typeStack.pop()
     function_id = operandStack.top()
-    keys_list = list(paramTable[function_id])
-    key = keys_list[paramCounter]
-    if argumentType == paramTable[function_id][key][TYPE]:
-        quad = Quadruple(PARAMETER, argument, None, paramCounter)
-        quadruples.append(quad)
+    if paramCounter == len(paramTable[function_id]):
+        keys_list = list(paramTable[function_id])
+        key = keys_list[paramCounter - 1]
+        print(paramTable)
+        if argumentType == paramTable[function_id][key][TYPE]:
+            quad = Quadruple(PARAMETER, argument, None, paramCounter - 1)
+            quadruples.append(quad)
+        else:
+            raise TypeMismatchError
     else:
-        raise TypeMismatchError
+        raise InvalidParamNum
 
 
 def p_callFunction3(p):
     'callFunction3 :'
     global paramCounter
-    paramCounter = paramCounter + 1
-
-
-def p_callFunction4(p):
-    'callFunction4 :'
-    global paramCounter
     function_id = operandStack.pop()
     operatorStack.pop()
     idType = typeStack.pop()
-    if paramCounter + 1 == len(paramTable[function_id]):
+    print(paramCounter)
+    if paramCounter == len(paramTable[function_id]):
         result = memory.getNextAddress(convert_type(idType, TEMPORAL_SCOPE))
         quad = Quadruple(GOSUB, functionDirectory[function_id][ADDRESS], None,
                          functionDirectory[function_id][FUNCTION_QUAD_INDEX])
@@ -594,7 +595,7 @@ def p_expressions(p):
 
 
 def p_expressionsPrime(p):
-    '''expressionsPrime : COMA callFunction3 expressions 
+    '''expressionsPrime : COMA expressions 
                         |'''
 
 

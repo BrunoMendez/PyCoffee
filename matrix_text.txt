@@ -1,0 +1,13 @@
+program patito;
+var y[2][2]: int;
+
+main(){
+y[0][0] = 1;
+y[0][1] = 2;
+y[1][0] = 3;
+y[1][1] = 4;
+print(y[0][0]);
+print(y[0][1]);
+print(y[1][0]);
+print(y[1][1]);
+}
