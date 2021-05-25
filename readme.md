@@ -12,3 +12,5 @@ En el cuarto avance logramos agregar todo el codigo intermedio para los estatuto
 En el quinto avance logramos agregar todo el codigo intermedio para llamar a funciones void y declarar funciones void. Tambien realizamos unos cambios al parser para poder agregar lo desarrollado correctamente.
 
 En el sexto avance logramos terminar todo el codigo para declarar y llamar funciones con tipo. Tambien realizamos el codigo intermedio para memoria y un primer avance del front/backend para comunicarnos con el Compilador usando Flask y NodeJS. El front-end no es final solo es para visualizar.
+
+En el septimo avance logramos corregir varios errores que teniamos de entregas pasadas, logramos declarar y inicializar arreglos de 1 y 2 dimensiones. Tambien realizamos el codigo de ejecucion de funciones y llamadas recursivas. Para esta entrega tenemos ya casi toda la funcionalidad del compilador, aun falta checar un detalle para tener un input dentro de una funcion. Al igual ya esta lista el front/backend utilizando React y Flask.
