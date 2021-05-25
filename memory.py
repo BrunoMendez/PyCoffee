@@ -27,6 +27,7 @@ class LocalMemory():
         self.paramInts = Queue()
         self.paramFloats = Queue()
         self.paramChars = Queue()
+    
     def getValue(self, address):
         return self.memory[address]
 

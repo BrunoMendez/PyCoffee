@@ -30,6 +30,9 @@ operandStack = Stack()
 typeStack = Stack()
 jumpStack = Stack()
 forStack = Stack()
+instructionPointerStack = Stack()
+resultAssignmentStack = Stack()
+memoryStack = Stack()
 quadruples = []
 function_id = ""
 function_type = ""
@@ -599,6 +602,7 @@ def p_readVar(p):
     operatorStack.pop()
     var = operandStack.pop()
     varType = typeStack.pop()
+    # porque estamos guardando el tipo aqui?
     quadruple = Quadruple(INPUT, varType, None, var)
     quadruples.append(quadruple)
 
@@ -991,6 +995,9 @@ def initAll():
     global forStack
     global function_id
     global function_type
+    global instructionPointerStack
+    global resultAssignmentStack
+    global memoryStack
     currentScope = GLOBAL_SCOPE
     functionDirectory = {}
     variableTable = {}
@@ -1005,6 +1012,9 @@ def initAll():
     typeStack = Stack()
     jumpStack = Stack()
     forStack = Stack()
+    instructionPointerStack = Stack()
+    resultAssignmentStack = Stack()
+    memoryStack = Stack()
     quadruples = []
     function_id = ""
     function_type = ""
@@ -1030,8 +1040,8 @@ def compile():
     initAll()
     # Here we will pass to the vm
     # and return the result of the vm to the front
-    parser.parse(content['codigo'])
     try:
+        parser.parse(content['codigo'])
         return vm.start(quadruples)
     except Exception as e:
         print("Error", e)
@@ -1042,10 +1052,39 @@ def compile():
 @app.route('/user-input', methods=["POST"])
 def userInput():
     content = request.get_json()
+    # iterate the content to push to the stacks
+    print('este es mi content' , content)
+    
+    insp = content[INSTRUCTION_POINTER].strip('][').split(', ')
+    res = content[RESULT_ASSIGNMENT].strip('][').split(', ')
+    mem = content[MEMORY].strip('][').split(', ')
+    for i in insp:
+        if(i != ''):
+            instructionPointerStack.push(int(i))
+    for i in res:
+        if(i != ''):
+            resultAssignmentStack.push(int(i))
+    for i in mem:
+        if(i != ''):
+            memoryStack.push(int(i))
+    print('#@#!@#', insp)
+    print('#@#!@#', res)
+    print('#@#!@#', mem)
+    while not instructionPointerStack.empty():
+        print(instructionPointerStack.pop())
+    while not resultAssignmentStack.empty():
+        print(resultAssignmentStack.pop())
+    while not memoryStack.empty():
+        print(memoryStack.pop())
     try:
-        return vm.start(quadruples,
-                        currentQuad=content[CURRENT_QUAD],
-                        inputValue=content[INPUT_VALUE])
+        if(insp == [''] and res == [''] and mem == ['']):
+            return vm.start(quadruples,
+                            currentQuad=content[CURRENT_QUAD],
+                            inputValue=content[INPUT_VALUE])
+        else:
+            return vm.start(quadruples,
+                            currentQuad=content[CURRENT_QUAD],
+                            inputValue=content[INPUT_VALUE], instructionPointerStack = instructionPointerStack, resultAssignmentStack = resultAssignmentStack, memoryStack=memoryStack)
     except Exception as e:
         print("Error", e)
         errors = {1: "Error: " + str(e)}

@@ -3,7 +3,7 @@ import React, { useState, useRef } from "react";
 import { Form, Container, Row, Col, Button } from "react-bootstrap";
 import "./Compiler.css";
 /* import fetchAPI from '../helpers/request'; */
-let base_url = "https://pycoffeecompiler.herokuapp.com/";
+let base_url = "http://localhost:5000/";
 let API_TOKEN = "ELDA";
 const Compiler = () => {
 	const [input, setInput] = useState("");
@@ -13,7 +13,9 @@ const Compiler = () => {
 	const [isWaitingForInput, setIsWaitingForInput] = useState(false);
 	const [inputLabel, setInputLabel] = useState("");
 	const [currentQuad, setCurrentQuad] = useState(0);
-
+	const [instructionPointer, setCurrentInstruction] = useState(0);
+	const [resultAssignment, setResultAssignment] = useState(0);
+	const [memory, setMemory] = useState(0);
 	const fetchUrl = (url, settings) => {
 		fetch(url, settings)
 			.then((response) => {
@@ -30,7 +32,11 @@ const Compiler = () => {
 					if (responseJSON.hasOwnProperty(key)) {
 						if (Array.isArray(responseJSON[key])) {
 							if ((responseJSON[key][0] = "INPUT_REQUEST")) {
+								console.log('hhhhhhh', responseJSON[key][1]);
 								setCurrentQuad(responseJSON[key][1]);
+								setCurrentInstruction(responseJSON[key][2]);
+								setResultAssignment(responseJSON[key][3]);
+								setMemory(responseJSON[key][4]);
 								setIsWaitingForInput(true);
 								userInputRef.current.focus();
 								setInputLabel(
@@ -74,10 +80,14 @@ const Compiler = () => {
 		setInputLabel("");
 		setIsWaitingForInput(false);
 		let url = base_url + "user-input";
-		console.log(userInputRef.current.value);
+		console.log('pendejo', userInputRef.current.value);
+		//instructionPointerStack.__str__(), resultAssignmentStack.__str__(), memoryStack.__str__()
 		let data = {
 			input_value: userInputRef.current.value,
 			current_quad: currentQuad,
+			instructionPointer : instructionPointer,
+			resultAssignment : resultAssignment, 
+			memory : memory
 		};
 		console.log(data);
 		let settings = {

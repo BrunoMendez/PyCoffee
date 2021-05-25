@@ -4,8 +4,10 @@ import memory
 from constants import *
 from datastructures import Stack
 
-
-def start(quadruples, currentQuad=0, inputValue=None):
+global instructionPointerStack
+global resultAssignmentStack
+global memoryStack
+def start(quadruples, currentQuad=0, inputValue=None, instructionPointerStack=Stack(), resultAssignmentStack=Stack(), memoryStack=Stack()):
     instructionPointerStack = Stack()
     resultAssignmentStack = Stack()
     memoryStack = Stack()
@@ -108,16 +110,34 @@ def start(quadruples, currentQuad=0, inputValue=None):
                     output[outputCount] = "Type mismatch error"
                     return output
                 # pasar los stacks aqui
+                # memoryStack.top()
+                """ memory.global_memory.printMem()
+                memory.local_memory_stack.top().printMem() """
+                if memory.local_memory_stack.top() != None:
+                    test = {
+                        quad_result : inputValue
+                    }
+                    # instructionPointerStack.push(memory.local_memory_stack.top().getValue(quad_result))
+                    print('////', test)
+                    # output[outputCount] = memory.getValue(quad_result)
+                    print('&&&&')
+                    print(quad_result)
+                    memory.local_memory_stack.top().setValue(quad_result, inputValue)
+                    print('::::::::')
+                    memory.local_memory_stack.top().printMem()
+                    print(quad_result)
+                    print(inputValue)
+                    # outputCount += 1
+                else:
+                    print('entra!!')
+                    memory.global_memory.printMem()
+                    memory.setValue(quad_result, inputValue)
                 # memory.setValue(quad_result, inputValue)
-                # instructionPointerStack.push(currentQuad)
-                # aqui no estoy seguro
-                # resultAssignmentStack.push(leftOperand)
-                # es necesario verificar el scope para ver si mandar el input
-                # a memoria local o global
-                # memoryStack
+                print('lol')
                 inputValue = None
             else:
-                output[outputCount] = [INPUT_REQUEST, currentQuad]
+                output[outputCount] = [INPUT_REQUEST, currentQuad, instructionPointerStack.__str__(), resultAssignmentStack.__str__(), memoryStack.__str__()]
+                print('!!!!!!!', output[outputCount])
                 return output
         elif operator == GOTO:
             currentQuad = quad_result - 1
@@ -152,5 +172,7 @@ def start(quadruples, currentQuad=0, inputValue=None):
             lim = rightOperand
             if not (0 <= s < lim):
                 raise OutOfBounds
+        print('//////@@@', currentQuad)
         currentQuad += 1
+        print('a veces?')
     return output

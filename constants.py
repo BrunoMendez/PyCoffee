@@ -22,7 +22,9 @@ ADDRESS = "address"
 INPUT_REQUEST = "INPUT_REQUEST"
 CURRENT_QUAD = "current_quad"
 INPUT_VALUE = "input_value"
-
+INSTRUCTION_POINTER = "instructionPointer"
+RESULT_ASSIGNMENT = "resultAssignment"
+MEMORY = "memory"
 # Types
 INT = "int"
 FLOAT = "float"
