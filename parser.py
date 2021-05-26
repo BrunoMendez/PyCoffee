@@ -1066,8 +1066,8 @@ def compile():
     initAll()
     # Here we will pass to the vm
     # and return the result of the vm to the front
-    parser.parse(content['codigo'])
     try:
+        parser.parse(content['codigo'])
         return vm.start(quadruples)
     except Exception as e:
         print("Error", e)
