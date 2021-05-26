@@ -4,11 +4,15 @@ import memory
 from constants import *
 from datastructures import Stack
 
+instructionPointerStack = Stack()
+resultAssignmentStack = Stack()
+memoryStack = Stack()
+
 
 def start(quadruples, currentQuad=0, inputValue=None):
-    instructionPointerStack = Stack()
-    resultAssignmentStack = Stack()
-    memoryStack = Stack()
+    global instructionPointerStack
+    global resultAssignmentStack
+    global memoryStack
     outputCount = 0
     output = {}
     while currentQuad < len(quadruples):
@@ -108,14 +112,9 @@ def start(quadruples, currentQuad=0, inputValue=None):
                     output[outputCount] = "Type mismatch error"
                     return output
                 # pasar los stacks aqui
-                # memory.setValue(quad_result, inputValue)
-                # instructionPointerStack.push(currentQuad)
-                # aqui no estoy seguro
-                # resultAssignmentStack.push(leftOperand)
-                # es necesario verificar el scope para ver si mandar el input
-                # a memoria local o global
-                # memoryStack
+                memory.setValue(quad_result, inputValue)
                 inputValue = None
+
             else:
                 output[outputCount] = [INPUT_REQUEST, currentQuad]
                 return output
