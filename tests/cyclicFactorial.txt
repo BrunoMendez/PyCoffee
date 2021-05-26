@@ -1,0 +1,11 @@
+program cyclicFactorial;
+var i, ans: int;
+main()
+{
+  ans = 1;
+  for(i=1 : 7)
+  {
+    ans = ans * i;
+  }
+  print(ans);
+}

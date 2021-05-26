@@ -1,0 +1,18 @@
+program recursiveFactorial;
+var factorial, ans: int;
+
+int function fact(m:int)
+var i: int;
+{
+   if(m > 1){
+    return(m * fact(m - 1));
+   } else {
+     return(1);
+   }
+}
+
+main()
+{
+  ans = 6;
+  print(fact(ans));
+}
