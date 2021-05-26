@@ -279,11 +279,8 @@ def p_addArr1(p):
     arrId = operandStack.top()
     # Verifica que lo que hay en el stack es un diccionario de un array
     if isinstance(arrId, dict):
-        print("dict")
         if IS_ARRAY in arrId.keys():
-            print("keys")
             if arrId[IS_ARRAY]:
-                print("array")
                 operatorStack.push(VERIFY_ARR)
                 operatorStack.push("+")
                 # Fake bottom
@@ -910,10 +907,14 @@ def p_addFor1(p):
         operandStack.push(leftSide)
         typeStack.push(leftType)
         operatorStack.push('+')
+        # Fake bottom
+        operatorStack.push("#")
         # Preparacion para hacer la comparacion aver si entra al for
         operandStack.push(leftSide)
         typeStack.push(leftType)
         operatorStack.push('<=')
+        # Fake bottom
+        operatorStack.push("%")
     else:
         # Error for loops must be ints
         raise TypeMismatchError
@@ -921,7 +922,12 @@ def p_addFor1(p):
 
 def p_addFor2(p):
     'addFor2 :'
+    # Pop fake bottom
+    fake_bottom = operatorStack.pop()
+    print("Fake_bottom", fake_bottom)
+    # Get <= operator
     operator = operatorStack.pop()
+    # Get Types and operands
     rightType = typeStack.pop()
     leftType = typeStack.pop()
     rightOperand = operandStack.pop()
@@ -942,13 +948,17 @@ def p_addFor2(p):
 
 def p_addFor3(p):
     'addFor3 :'
-    print("operatorStack", operatorStack)
+    # Pop fake bottom
+    fake_bottom = operatorStack.pop()
+    print("Fake bottom", fake_bottom)
+    # Get sum operator
     operator = operatorStack.pop()
     leftSide = operandStack.pop()
     leftType = typeStack.pop()
     rightSide = memory.getNextAddress(CONSTANT_INT, value='1', valType=INT)
     rightType = INT
     resultType = semanticCube[(leftType, rightType, operator)]
+    print("Addfor3", leftSide, rightSide)
     if leftType == INT:
         result = memory.getNextAddress(convert_type(resultType,
                                                     TEMPORAL_SCOPE))
