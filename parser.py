@@ -1,41 +1,66 @@
 # Bruno Mendez A01194018
 # Esteban Torres A01193925
-# bug report ----> si no especificas la variable arriba del programa se queda esperando y no arroja ningun resultado
-# hacer algo para que si se pone una variable que no existe en la tabla regresar un error(variable not declared!)
-# no estamos pasando el tipo de la variable al typeStack
-from typing import Type
+
+# Main document for compilation.
+# In this code we verify that the grammar is correct and that all the tokens
+# are in the right place. Otherwise we would generate a syntax error
+# if the submitted code does not comply with the grammar or
+# an Illegal Character error is thrown if an unknown character is used
+
 import ply.yacc as yacc
 import lexer
-from collections import deque
 from errors import *
 from datastructures import *
 import memory
 from constants import *
 import vm
 
+# Importar tokens list
 tokens = lexer.tokens
+
+# Import flask libraries for backend.
 from flask import *
 from flask_cors import CORS
 
-currentScope = GLOBAL_SCOPE
+# Definition of global variables used in compilation.
+
+# Dictionaries used for memory in compilation
 functionDirectory = {}
 variableTable = {}
 paramTable = {}
-varIds = Queue()
-currentType = ""
-checkFunction = False
-hasReturn = False
-paramCounter = 0
+
+# Stacks used in compilation
 operatorStack = Stack()
 operandStack = Stack()
 typeStack = Stack()
 jumpStack = Stack()
-forStack = Stack()
+
+# List of generated quadruples.
 quadruples = []
+
+# Global strings to check the state of the compiler.
+currentScope = GLOBAL_SCOPE
+currentType = ""
 function_id = ""
 function_type = ""
 
+# Fila para agregar variables en orden.
+varIds = Queue()
 
+# Checks if the variable is a function
+checkFunction = False
+
+# Checks if the function has a return statement.
+hasReturn = False
+
+# Counts the parameters of the function to call
+paramCounter = 0
+
+
+# This function returns a string that tells us in which range of addresses in
+# memory the variable must be.
+#
+# Receives the variable type and scope (global or local) as parameters.
 def convert_type(idType, scope):
     if idType == VOID:
         return VOID
@@ -71,22 +96,21 @@ def convert_type(idType, scope):
     raise InvalidType
 
 
-# Toma precedencia ( sobre ID para no reducir ID cuando llamamos una funcion.
+# The token '(' takes precedence over the id to avoid shift reduce conflicts.
 precedence = (
     ('right', 'ID'),
     ('nonassoc', 'LPAREN'),
 )
 
 
-# Definicion de reglas de la gramatica
+# Definition of the code's structure.
 def p_program(p):
     'program : PROGRAM ID createGlobalTables SEMICOLON vars functions MAIN LPAREN RPAREN mainStart block'
-    functionDirectory[GLOBAL_SCOPE][
-        FUNCTION_TEMP_COUNT] = memory.resetLocalTemporals()
-    functionDirectory[GLOBAL_SCOPE][FUNCTION_VAR_COUNT] = len(
-        variableTable[GLOBAL_SCOPE])
+    # Last quadruple that indicates the end of the code.
     endQuad = Quadruple(END_PROG, None, None, None)
     quadruples.append(endQuad)
+
+    # Prints the final state of the compiler.
     print(variableTable)
     print(functionDirectory)
     for quadruple in quadruples:
@@ -96,12 +120,14 @@ def p_program(p):
     print("Operand stack: ", operandStack)
 
 
+# Indicates the position of the main function.
 def p_mainStart(p):
     'mainStart :'
     quadruples[0].result = len(quadruples)
     functionDirectory[GLOBAL_SCOPE][FUNCTION_QUAD_INDEX] = len(quadruples)
 
 
+# Initializes the global variables and dictionaries and generates the Goto Main Quadruple
 def p_createGlobalTables(p):
     'createGlobalTables : '
     currentScope = GLOBAL_SCOPE
@@ -127,15 +153,17 @@ def p_varsPrime(p):
                 | '''
 
 
+# Adds the variables in the queue to the variable table.
 def p_addVars(p):
     'addVars :'
     while not varIds.empty():
         var = varIds.dequeue()
-        ## Nos dice si es un array
+        ## Checks if the variable is an array.
         if (type(var) is dict):
             if (var[ID] in variableTable[currentScope]):
                 raise VarAlreadyInTable
             address = ""
+            # Gets the base address of the array.
             if (currentScope == GLOBAL_SCOPE):
                 address = memory.getNextAddress(convert_type(
                     currentType, GLOBAL_SCOPE),
@@ -144,20 +172,27 @@ def p_addVars(p):
                 address = memory.getNextAddress(convert_type(
                     currentType, LOCAL_SCOPE),
                                                 offset=var[R])
+            # Populates the variable table entry of the array.
             variableTable[currentScope][var[ID]] = {
                 TYPE: currentType,
                 ADDRESS: address,
                 IS_ARRAY: True,
+                # 1 or 2 dimensions
                 DIM: var[DIM],
                 SIZE: var[R],
+                # limit of first dimension.
                 LIM: var[LIM],
             }
+            # If its a matrix add the limit of the second dimension.
             if (var[DIM] > 1):
                 variableTable[currentScope][var[ID]][LIM2] = var[LIM2]
+        # If it's not an array
         else:
             if (var in variableTable[currentScope]):
                 raise VarAlreadyInTable
             address = ""
+
+            # Get variable address and populate variable table.
             if (currentScope == GLOBAL_SCOPE):
                 address = memory.getNextAddress(
                     convert_type(currentType, GLOBAL_SCOPE))
@@ -171,6 +206,9 @@ def p_addVars(p):
             }
 
 
+# TODO: Checar si vale la pena pasar arrays como parametros.
+# Adds local function variables to variable table.
+# same logic as addVars but with a paramTable.
 def p_addFunction2(p):
     'addFunction2 :'
     while not varIds.empty():
@@ -186,6 +224,7 @@ def p_addFunction2(p):
                 IS_ARRAY:
                 False
             }
+            # Populates param table so that we know what parameters each function takes.
             paramTable[currentScope][var] = {TYPE: currentType}
 
 
@@ -205,62 +244,78 @@ def p_listIdsPrime(p):
 
 def p_ids(p):
     '''ids : ID addId
-            | ID addId LBRACKET CST_INT addId1 RBRACKET
-            | ID addId LBRACKET CST_INT addId1 RBRACKET LBRACKET CST_INT addId2 RBRACKET'''
+            | ID addId LBRACKET CST_INT addArr1 RBRACKET
+            | ID addId LBRACKET CST_INT addArr1 RBRACKET LBRACKET CST_INT addArr2 RBRACKET'''
 
 
-def p_addId1(p):
-    'addId1 :'
+# Adds array with data to varIDs queue
+def p_addArr1(p):
+    'addArr1 :'
     id = varIds.back()
+    # Sets first dimension limit to CST_INT passed
     array = {ID: id, DIM: 1, LIM: int(p[-1])}
+    # Sets size to first dimension limit.
     array[R] = array[LIM]
+    # Pass array as dict to diferentiate arrays and variables.
     varIds.enqueue(array)
 
 
-def p_addId2(p):
-    'addId2 :'
+def p_addArr2(p):
+    'addArr2 :'
     array = varIds.back()
+    # Adds a second dimension
     array[DIM] += 1
     array[LIM2] = int(p[-1])
+    # Set size to first dimension * second dimension.
     array[R] = array[LIM2] * array[R]
+    # Pass array as dict to diferentiate arrays and variables.
     varIds.enqueue(array)
 
 
+# Adds variable id to queue.
 def p_addId(p):
     'addId :'
     varIds.enqueue(p[-1])
 
 
+# Checks if ID is not a function ID.
 def p_checkIfNotFunction(p):
     'checkIfNotFunction :'
     if checkFunction:
         raise VarNotDefined
 
 
+# Used for variable operations that don't support functions. (assignment, read...)
 def p_ids2(p):
     '''ids2 : ID addIdToStack checkIfNotFunction
             | ID addIdToStack arrPos'''
 
 
+# Gets Id address and type and adds it to operator stack and type stack.
 def p_addIdToStack(p):
     'addIdToStack :'
     # manejar arrays
     varId = p[-1]
     if varId in functionDirectory:
+        # Marks ID as function ID.
         global checkFunction
         checkFunction = True
         typeStack.push(functionDirectory[varId][TYPE])
         operandStack.push(varId)
+    # Checks if var is local first.
     elif (varId in variableTable[currentScope]):
         varType = variableTable[currentScope][varId][TYPE]
         typeStack.push(varType)
+        # If var is array push array ID instead of address.
         if (variableTable[currentScope][varId][IS_ARRAY]):
             operandStack.push(variableTable[currentScope][varId])
         else:
             operandStack.push(variableTable[currentScope][varId][ADDRESS])
+    # Then check global variables.
     elif (varId in variableTable[GLOBAL_SCOPE]):
         varType = variableTable[GLOBAL_SCOPE][varId][TYPE]
         typeStack.push(varType)
+        # If var is array push array ID instead of address.
         if (variableTable[GLOBAL_SCOPE][varId][IS_ARRAY]):
             operandStack.push(variableTable[GLOBAL_SCOPE][varId])
         else:
@@ -270,12 +325,12 @@ def p_addIdToStack(p):
 
 
 def p_arrPos(p):
-    '''arrPos : LBRACKET addArr1 exp addArr2 RBRACKET addArr4
-                | LBRACKET addArr1 exp addArr2 RBRACKET LBRACKET addArr5 exp addArr3 RBRACKET addArr4'''
+    '''arrPos : LBRACKET getArr1 exp getArr2 RBRACKET getArr5
+                | LBRACKET getArr1 exp getArr2 RBRACKET LBRACKET getArr3 exp getArr4 RBRACKET getArr5'''
 
 
-def p_addArr1(p):
-    'addArr1 :'
+def p_getArr1(p):
+    'getArr1 :'
     arrId = operandStack.top()
     # Verifica que lo que hay en el stack es un diccionario de un array
     if isinstance(arrId, dict):
@@ -293,16 +348,16 @@ def p_addArr1(p):
         raise TypeMismatchError
 
 
-def p_addArr5(p):
-    'addArr5 :'
+def p_getArr3(p):
+    'getArr3 :'
     operatorStack.push(VERIFY_ARR)
     operatorStack.push("+")
     # Fake bottom
     operatorStack.push("%")
 
 
-def p_addArr2(p):
-    'addArr2 :'
+def p_getArr2(p):
+    'getArr2 :'
     # pop fake bottom
     operatorStack.pop()
     sumOp = operatorStack.pop()
@@ -332,8 +387,8 @@ def p_addArr2(p):
         raise TypeMismatchError
 
 
-def p_addArr3(p):
-    'addArr3 :'
+def p_getArr4(p):
+    'getArr4 :'
     # Pop fake bottom
     operatorStack.pop()
     sumOp = operatorStack.pop()
@@ -365,8 +420,8 @@ def p_addArr3(p):
         raise TypeMismatchError
 
 
-def p_addArr4(p):
-    'addArr4 :'
+def p_getArr5(p):
+    'getArr5 :'
     address = operandStack.pop()
     addressType = typeStack.pop()
     arrId = operandStack.pop()
@@ -1024,7 +1079,6 @@ def initAll():
     global operandStack
     global typeStack
     global jumpStack
-    global forStack
     global function_id
     global function_type
     currentScope = GLOBAL_SCOPE
@@ -1040,7 +1094,6 @@ def initAll():
     operandStack = Stack()
     typeStack = Stack()
     jumpStack = Stack()
-    forStack = Stack()
     quadruples = []
     function_id = ""
     function_type = ""
