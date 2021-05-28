@@ -328,17 +328,20 @@ def p_arrPos(p):
     '''arrPos : LBRACKET getArr1 exp getArr2 RBRACKET getArr5
                 | LBRACKET getArr1 exp getArr2 RBRACKET LBRACKET getArr3 exp getArr4 RBRACKET getArr5'''
 
-
+# Gets the id of an array and push a verify operation in an array [1st dimension]
+# Pushes a fake botton
 def p_getArr1(p):
     'getArr1 :'
     arrId = operandStack.top()
-    # Verifica que lo que hay en el stack es un diccionario de un array
+    # Verifies that id stored in the Stack is a dictionary of an array
     if isinstance(arrId, dict):
         if IS_ARRAY in arrId.keys():
             if arrId[IS_ARRAY]:
                 operatorStack.push(VERIFY_ARR)
+                # Serves to check that the size matches the size of the declared array
+                # Of the first dimension
                 operatorStack.push("+")
-                # Fake bottom
+                # Push a Fake bottom to the operatorStack
                 operatorStack.push("%")
             else:
                 raise TypeMismatchError
@@ -347,37 +350,46 @@ def p_getArr1(p):
     else:
         raise TypeMismatchError
 
-
+# Gets the id of an array and push a verify operation in an array [2nd dimension]
 def p_getArr3(p):
     'getArr3 :'
     operatorStack.push(VERIFY_ARR)
+    # Serves to check that the size matches the size of the declared array
+    # Of the second dimension
     operatorStack.push("+")
-    # Fake bottom
+    # Push a Fake bottom to the operatorStack
     operatorStack.push("%")
 
-
+# Calculates addresses if its a dimension=1 or dimension=2
+# Gets the memory addresses of the indexes
+# Checks that the value passed is an Integer
 def p_getArr2(p):
     'getArr2 :'
     # pop fake bottom
     operatorStack.pop()
+    # Pop the sum operator
     sumOp = operatorStack.pop()
+    # Pop the verify operator
     verifyOp = operatorStack.pop()
     expResult = operandStack.pop()
     expType = typeStack.pop()
     arrId = operandStack.top()
+    # Verifies that the number passed is an integer
     if expType == INT:
         quad = Quadruple(verifyOp, expResult, arrId[LIM], None)
         quadruples.append(quad)
-        # Si el arreglo es de 2 dimensiones hace lim2*S1
+        # If it is a 2-dimension array it calculates lim2*S1
         if arrId[DIM] == 2:
             sumOp = '*'
             operand = LIM2
-        #Si el arreglo es de 1 dimension hace AddressB+S1
+        # If it is a 1-dimension array it calculates AddressB+S1
         else:
             operand = ADDRESS
+        # get the memory address of the array id
         assignResult = memory.getNextAddress(CONSTANT_INT,
                                              value=arrId[operand],
                                              valType=INT)
+        # get the memory address of the indexes
         result = memory.getNextAddress(convert_type(INT, TEMPORAL_SCOPE))
         quad = Quadruple(sumOp, expResult, assignResult, result)
         quadruples.append(quad)
@@ -386,7 +398,8 @@ def p_getArr2(p):
     else:
         raise TypeMismatchError
 
-
+# Pop fake bottom and verifies that the value passed is not out of bounds
+# Append quadruples of the addreses of the array/matrix
 def p_getArr4(p):
     'getArr4 :'
     # Pop fake bottom
@@ -402,7 +415,7 @@ def p_getArr4(p):
         baseAddress = memory.getNextAddress(CONSTANT_INT,
                                             value=arrId[ADDRESS],
                                             valType=INT)
-        # verifica que no este out of bounds
+        # Verifies that it is not out of bounds
         quad = Quadruple(verifyOp, expResult, arrId[LIM2], None)
         quadruples.append(quad)
         # S2 + S1*LIM2
@@ -419,7 +432,8 @@ def p_getArr4(p):
     else:
         raise TypeMismatchError
 
-
+# Push a fake bottom in the addres to delimit that from that point until pop of fake bottom
+# is part of the array/matrix
 def p_getArr5(p):
     'getArr5 :'
     address = operandStack.pop()
@@ -431,7 +445,7 @@ def p_getArr5(p):
     operandStack.push(address)
     typeStack.push(arrType)
 
-
+# Sets global currentType variable to the one passed
 def p_type(p):
     '''type : INT
             | FLOAT
@@ -439,7 +453,7 @@ def p_type(p):
     global currentType
     currentType = p[1]
 
-
+# Sets the type of the awaited return .. in this case its void therefore -- no return is expected--
 def p_returnType(p):
     '''returnType : type
                     | VOID'''
@@ -447,7 +461,11 @@ def p_returnType(p):
         global currentType
         currentType = p[1]
 
-
+# Gets the currentScope of the program, when finished running a function
+# Resets Memory's LocalTemporals and Locals
+# Deletes variableTable of the currentScope == function
+# sets the currentScope of the program to Global
+# if a non void function is declared checks if return is present else push EndFunc quadruple
 def p_function(p):
     'function : returnType FUNCTION ID addFunction1 LPAREN params RPAREN addFunction3 vars addFunction4 block'
     global currentScope
@@ -460,37 +478,46 @@ def p_function(p):
         raise NonVoidFuncReturnMissing
     quadruples.append(Quadruple(END_FUNC, None, None, None))
 
-
+# Sets the index of the quadruples length (at the moment) for the functionDirectory
 def p_addFunction4(p):
     'addFunction4 :'
     functionDirectory[currentScope][FUNCTION_QUAD_INDEX] = len(quadruples)
 
-
+# Sets the parameters count for the functionDirectory
 def p_addFunction3(p):
     'addFunction3 :'
     functionDirectory[currentScope][FUNCTION_PARAM_COUNT] = len(
         paramTable[currentScope])
 
-
+# Initialize dictionaries, booleans. Sanity checks and delimits the function’s information
 def p_addFunction1(p):
     'addFunction1 :'
     global hasReturn
     global currentScope
     global function_id
     global function_type
+    # Initialize hasReturn boolean to False, to later check if void or non void
     hasReturn = False
+    # gets the currentScope of the program
     currentScope = p[-1]
+     # Initialize the paramTable of the currentScope to an empty dictionary
     paramTable[currentScope] = {}
+    # Initialize the functionDirectory of the currentScope to an empty dictionary
     functionDirectory[currentScope] = {}
+    # Sets the Type of the functionDirectory of the currentScope
     functionDirectory[currentScope][TYPE] = currentType
+    # Sets the memory address of the functionDirectory of the currentScope
     functionDirectory[currentScope][ADDRESS] = memory.getNextAddress(
         convert_type(currentType, GLOBAL_SCOPE))
+    # Sets the variableTable of the currentScope to an empty dictionary
     variableTable[currentScope] = {}
     function_id = currentScope
     function_type = currentType
     if (function_type != VOID):
+        # Check if the variable is already declared in the global scope
         if (function_id in variableTable[GLOBAL_SCOPE]):
             raise VarAlreadyInTable
+        # Sets the function in the variableTable of the global scope and delimits is not an array
         variableTable[GLOBAL_SCOPE][function_id] = {
             TYPE:
             function_type,
@@ -543,25 +570,27 @@ def p_writePrime(p):
     '''writePrime : addFakeBottom expression popOperator printExpression writePrimePrime
                     | CST_STRING printString writePrimePrime'''
 
-
+# Helps to print expressions
+# e.g. print(x);
 def p_printExpression(p):
     'printExpression :'
     typeStack.pop()
     quadruple = Quadruple(PRINT_EXP, None, None, operandStack.pop())
     quadruples.append(quadruple)
 
-
+# Helps to print signs
+# e.g. print("Hello World");
 def p_printString(p):
     'printString :'
     quadruple = Quadruple(PRINT_STR, None, None, p[-1])
     quadruples.append(quadruple)
 
-
+# Pop operator of the operatorStack
 def p_popOperator(p):
     'popOperator :'
     operatorStack.pop()
 
-
+# Add fake bottom to the operatorStack
 def p_addFakeBottom(p):
     'addFakeBottom :'
     operatorStack.push("$")
@@ -579,7 +608,8 @@ def p_callVoidF(p):
 def p_callFunction(p):
     '''callFunction : LPAREN callFunction1 expressions RPAREN callFunction3'''
 
-
+# Checks that the variable is a function, reset the boolean and push a Fake bottom
+# Sets the paramCounter to 0 --> This helps for functions without parameters
 def p_callFunction1(p):
     'callFunction1 :'
     global checkFunction
@@ -587,17 +617,18 @@ def p_callFunction1(p):
         checkFunction = False
         function_id = operandStack.top()
         operatorStack.push("{")
-        # Esto es temporal hasta tener memoria, le tenemos que pasar la cantidad de vars.
+        # Push ERA quadruple with its memory
         quad = Quadruple(ERA, functionDirectory[function_id][ADDRESS], None,
                          None)
+        # Appends it to the quadruples list
         quadruples.append(quad)
         global paramCounter
-        # este elda lo puso como 1 -- si tenemos problemas despues puede ser esto
         paramCounter = 0
     else:
         raise FunctionNotDeclared
 
-
+# Counts the parameters of the function and set the Parameter quadruple with its argument and paramCounter
+# Checks that the parameter number matches the parameters passed and also that it matches its type
 def p_callFunction2(p):
     'callFunction2 :'
     global paramCounter
