@@ -791,7 +791,8 @@ def p_term(p):
 
 def p_factor(p):
     '''factor : LPAREN addOperator expression RPAREN popOperator
-                | varCst'''
+                | varCst
+                | MINUS expression addUMinus'''
 
 
 def p_varCst(p):
@@ -815,6 +816,22 @@ def p_popOperator(p):
 def p_addOperator(p):
     'addOperator :'
     operatorStack.push(p[-1])
+
+
+def p_addUMinus(p):
+    'addUMinus :'
+    expResult = operandStack.pop()
+    expType = typeStack.pop()
+    minus1 = memory.getNextAddress(CONSTANT_INT, value='-1', valType=INT)
+    opType = semanticCube[(expType, INT, '*')]
+    if opType != ERROR:
+        result = memory.getNextAddress(convert_type(expType, TEMPORAL_SCOPE))
+        quad = Quadruple('*', expResult, minus1, result)
+        quadruples.append(quad)
+        operandStack.push(result)
+        typeStack.push(expType)
+    else:
+        raise TypeMismatchError
 
 
 # Pushes assignment quadruple.
