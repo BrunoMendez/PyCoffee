@@ -14,6 +14,7 @@ resultAssignmentStack = Stack()
 # memoryStack has instances of memory
 memoryStack = Stack()
 
+
 # Function to start the vm and do juicy stuff!
 # Receives list of quadruples and optionally the currentQuad and inputValue
 # Will receive the currentQuad and inputValue after vm stops for input response
@@ -125,8 +126,9 @@ def start(quadruples, currentQuad=0, inputValue=None):
             output[outputCount] = quad_result
             outputCount += 1
         elif operator == INPUT:
-            # Get input value, cast and set memory value
+            # This will run after input is received
             if inputValue != None:
+                # Get input value, cast and set memory value
                 varType = leftOperand
                 try:
                     if varType == INT:
@@ -142,8 +144,9 @@ def start(quadruples, currentQuad=0, inputValue=None):
                     return output
                 memory.setValue(quad_result, inputValue)
                 inputValue = None
+            # This will run before asking for input
             else:
-                # If input value was set return output
+                # return an input request to the front end
                 output[outputCount] = [INPUT_REQUEST, currentQuad]
                 return output
         elif operator == GOTO:
