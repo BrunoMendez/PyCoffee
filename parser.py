@@ -792,7 +792,8 @@ def p_term(p):
 def p_factor(p):
     '''factor : LPAREN addOperator expression RPAREN popOperator
                 | varCst
-                | MINUS factor addUMinus'''
+                | MINUS factor addUMinus
+                | PLUS factor'''
 
 
 def p_varCst(p):
