@@ -1,5 +1,5 @@
 program functionCalls;
-var i[5][5]: int;
+var i[5][5], j: int;
 
 void function pelos(i: int) {
     print(i);
@@ -13,4 +13,7 @@ main() {
     i[pelambres()][0] = pelambres();
     print(i[1][0]);
     pelos(pelambres());
+    for(j=pelambres(): pelambres()+2) {
+        print(j);
+    }
 }

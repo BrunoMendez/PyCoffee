@@ -1,5 +1,5 @@
 program recursiveFibonacci;
-var i: int;
+var i, n: int;
 
 int function fibo(num : int){
     if(num< 2){
@@ -10,7 +10,8 @@ int function fibo(num : int){
 }
 
 main() {
-  for(i=0:12) {
+  input(n);
+  for(i=0:n-1) {
      print(fibo(i));
   }
 }

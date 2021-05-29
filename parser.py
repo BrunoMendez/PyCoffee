@@ -391,8 +391,6 @@ def p_getArr2(p):
 def p_getArr3(p):
     'getArr3 :'
     arrId = operandStack.top()
-    print(operandStack)
-    print("Array ID", arrId)
     # Verifies that its a 2D array
     if arrId[DIM] == 2:
         # Serves to check that the size matches the size of the declared array
@@ -401,7 +399,6 @@ def p_getArr3(p):
         operatorStack.push("+")
         # Push a Fake bottom to the operatorStack
         operatorStack.push("%")
-        print(operandStack)
     else:
         raise TypeMismatchError
 
@@ -447,12 +444,10 @@ def p_getArr4(p):
 # Adds address result to operandStack as pointer
 def p_getArr5(p):
     'getArr5 :'
-    arrId = operandStack.pop()
+    operandStack.pop()
     arrType = typeStack.pop()
     address = operandStack.pop()
-    addressType = typeStack.pop()
-    print(address, addressType, arrId, arrType)
-    print(operatorStack, typeStack)
+    typeStack.pop()
     # Adds identifier to know that it's a pointer.
     address = "(" + str(address)
     operandStack.push(address)
@@ -675,11 +670,12 @@ def p_callFunction3(p):
     operatorStack.pop()
     idType = typeStack.pop()
     if paramCounter == len(paramTable[function_id]):
-        result = memory.getNextAddress(convert_type(idType, TEMPORAL_SCOPE))
         quad = Quadruple(GOSUB, functionDirectory[function_id][ADDRESS], None,
                          functionDirectory[function_id][FUNCTION_QUAD_INDEX])
         quadruples.append(quad)
         if functionDirectory[function_id][TYPE] != VOID:
+            result = memory.getNextAddress(convert_type(
+                idType, TEMPORAL_SCOPE))
             assignQuad = Quadruple('=',
                                    functionDirectory[function_id][ADDRESS],
                                    None, result)
@@ -700,6 +696,8 @@ def p_expressionsPrime(p):
                         |'''
 
 
+# Sets hasReturn to true
+# Adds return quadruple.
 def p_return(p):
     'return : RETURN LPAREN expression RPAREN SEMICOLON'
     global hasReturn
@@ -721,6 +719,7 @@ def p_readPrime(p):
     'readPrime : ids2 readVar readPrimePrime'
 
 
+# Pushes input quadruple.
 def p_readVar(p):
     'readVar :'
     operatorStack.pop()
@@ -753,7 +752,6 @@ def p_conditional(p):
     'conditional : WHILE addWhile1 LPAREN expression addWhile2 RPAREN block addWhile3'
 
 
-# Podrias inicializar el for con una funcion?
 def p_nonConditional(p):
     'nonConditional : FOR LPAREN ids2 EQUAL addOperator exp addFor1 COLON exp addFor2 RPAREN block addFor3'
 
@@ -819,6 +817,7 @@ def p_addOperator(p):
     operatorStack.push(p[-1])
 
 
+# Pushes assignment quadruple.
 def p_addAssignment(p):
     'addAssignment :'
     res = operandStack.pop()
@@ -826,16 +825,16 @@ def p_addAssignment(p):
     leftSide = operandStack.pop()
     leftType = typeStack.pop()
     operator = operatorStack.pop()
+    # Verifies types with semantic cube.
     opType = semanticCube[(leftType, resType, operator)]
     if (opType != ERROR):
-        # esto estaba asi -> Quadruple(operator, None, res, leftSide)
         quadruple = Quadruple(operator, res, None, leftSide)
         quadruples.append(quadruple)
     else:
-        # Create error message
         raise TypeMismatchError
 
 
+# push And/Or quadruple.
 def p_addAndOr(p):
     'addAndOr :'
     if (operatorStack.top() in [AND, OR]):
@@ -844,6 +843,7 @@ def p_addAndOr(p):
         leftType = typeStack.pop()
         rightOperand = operandStack.pop()
         leftOperand = operandStack.pop()
+        # Verifies types with semantic cube.
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != ERROR:
             result = memory.getNextAddress(
@@ -852,17 +852,18 @@ def p_addAndOr(p):
                 Quadruple(operator, leftOperand, rightOperand, result))
             operandStack.push(result)
             typeStack.push(resultType)
-            # if any operand were a temporal space return it to avail
         else:
             raise TypeMismatchError()
 
 
+# Add not quadruple.
 def p_addNot(p):
     'addNot :'
     if (operatorStack.top() == NOT):
         operator = operatorStack.pop()
         opType = typeStack.pop()
         operand = operandStack.pop()
+        # Since we use integer logic we check that the operator is an int.
         if (opType == INT):
             result = memory.getNextAddress(convert_type(
                 opType, TEMPORAL_SCOPE))
@@ -874,6 +875,7 @@ def p_addNot(p):
             raise TypeMismatchError()
 
 
+# Adds comparative operator quadruples.
 def p_addExp(p):
     'addExp :'
     if (operatorStack.top() in ['<', '<=', '>', '>=', '<>', '==']):
@@ -882,6 +884,7 @@ def p_addExp(p):
         leftType = typeStack.pop()
         rightOperand = operandStack.pop()
         leftOperand = operandStack.pop()
+        # Verifies types with semantic cube.
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != ERROR:
             result = memory.getNextAddress(
@@ -890,11 +893,11 @@ def p_addExp(p):
                 Quadruple(operator, leftOperand, rightOperand, result))
             operandStack.push(result)
             typeStack.push(resultType)
-            # if any operand were a temporal space return it to avail
         else:
             raise TypeMismatchError()
 
 
+# Adds +/- quadruples.
 def p_addTerm(p):
     'addTerm :'
     if (operatorStack.top() in ['+', '-']):
@@ -903,6 +906,7 @@ def p_addTerm(p):
         leftType = typeStack.pop()
         rightOperand = operandStack.pop()
         leftOperand = operandStack.pop()
+        # Verifies types with semantic cube.
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != ERROR:
             result = memory.getNextAddress(
@@ -911,11 +915,11 @@ def p_addTerm(p):
             quadruples.append(quadruple)
             operandStack.push(result)
             typeStack.push(resultType)
-            # if any operand were a temporal space return it to avail
         else:
             raise TypeMismatchError()
 
 
+# Adds * or / quadruples.
 def p_addFactor(p):
     'addFactor :'
     if (operatorStack.top() in ['*', '/']):
@@ -924,6 +928,7 @@ def p_addFactor(p):
         leftType = typeStack.pop()
         rightOperand = operandStack.pop()
         leftOperand = operandStack.pop()
+        # Verifies types with semantic cube.
         resultType = semanticCube[(leftType, rightType, operator)]
         if resultType != ERROR:
             result = memory.getNextAddress(
@@ -932,12 +937,11 @@ def p_addFactor(p):
             quadruples.append(quadruple)
             operandStack.push(result)
             typeStack.push(resultType)
-            # if any operand were a temporal space return it to avail
         else:
-            # error('type mismatch')
             raise TypeMismatchError()
 
 
+# Adds GOTOF quadruples and adds current (starting) position to jumpstack.
 def p_addIf1(p):
     'addIf1 : '
     exp_type = typeStack.pop()
@@ -950,35 +954,44 @@ def p_addIf1(p):
         jumpStack.push(len(quadruples) - 1)
 
 
+# Tells quadruple in the jumpstack where the end of the if code is.
 def p_addIf2(p):
     'addIf2 : '
-    end = jumpStack.pop()
-    quadruples[end] = Quadruple(quadruples[end].operator,
-                                quadruples[end].leftOperand, None,
-                                len(quadruples))
+    quad_index = jumpStack.pop()
+    end_pos = len(quadruples)
+    quadruples[quad_index] = Quadruple(quadruples[quad_index].operator,
+                                       quadruples[quad_index].leftOperand,
+                                       None, end_pos)
 
 
+# Handles else statement.
 def p_addIf3(p):
     'addIf3 : '
-    false = jumpStack.pop()
+    # Tells GOTOF quadruple where the else block starts.
+    quad_index = jumpStack.pop()
+    else_pos = len(quadruples) + 1
+    quadruples[quad_index] = Quadruple(quadruples[quad_index].operator,
+                                       quadruples[quad_index].leftOperand,
+                                       None, else_pos)
+    # Adds goto Quadruple before else statement to go to end if statement was true.
     quadruple = Quadruple(GOTO, None, None, None)
     quadruples.append(quadruple)
     jumpStack.push(len(quadruples) - 1)
-    quadruples[false] = Quadruple(GOTOF, quadruples[false].leftOperand, None,
-                                  len(quadruples))
 
 
+# push start position to jumpstack
 def p_addWhile1(p):
     'addWhile1 : '
     jumpStack.push(len(quadruples))
 
 
+# Check adds GOTOF with expression result.
 def p_addWhile2(p):
     'addWhile2 : '
     result = operandStack.pop()
     exp_type = typeStack.pop()
+    # Check if int because integer logic.
     if (exp_type != INT):
-        # Logica de manejo de errors
         raise TypeMismatchError
     else:
         quadruple = Quadruple(GOTOF, result, None, None)
@@ -986,6 +999,8 @@ def p_addWhile2(p):
         jumpStack.push(len(quadruples) - 1)
 
 
+# Adds goto quad with start position added in addWhile1
+# Completes GOTOF quadruple with statements end position.
 def p_addWhile3(p):
     'addWhile3 : '
     end = jumpStack.pop()
@@ -997,25 +1012,28 @@ def p_addWhile3(p):
                                 len(quadruples))
 
 
+# Checks that expression type and the variable type are ints.
+# Adds assignment quadruple.
+# Sets up next for operations.
 def p_addFor1(p):
     'addFor1 :'
     res = operandStack.pop()
     resType = typeStack.pop()
-    leftSide = operandStack.pop()
-    leftType = typeStack.pop()
-    operator = operatorStack.pop()
-    if (resType == INT and leftType == INT):
-        quadruple = Quadruple(operator, res, None, leftSide)
+    countVar = operandStack.pop()
+    countVarType = typeStack.pop()
+    equalsOperator = operatorStack.pop()
+    if (resType == INT and countVarType == INT):
+        quadruple = Quadruple(equalsOperator, res, None, countVar)
         quadruples.append(quadruple)
-        # Preparacion para hacer la suma a la variable cuando acabe el for
-        operandStack.push(leftSide)
-        typeStack.push(leftType)
+        # Prepare sum operation for end of loop.
+        operandStack.push(countVar)
+        typeStack.push(countVarType)
         operatorStack.push('+')
         # Fake bottom
         operatorStack.push("#")
-        # Preparacion para hacer la comparacion aver si entra al for
-        operandStack.push(leftSide)
-        typeStack.push(leftType)
+        # Prepare compare operation to check if for will enter loop.
+        operandStack.push(countVar)
+        typeStack.push(countVarType)
         operatorStack.push('<=')
         # Fake bottom
         operatorStack.push("%")
@@ -1024,13 +1042,14 @@ def p_addFor1(p):
         raise TypeMismatchError
 
 
+# Pushes <= comparation quadruple and GOTOF quadruple with the result
+# of the <= operation as a condition.
 def p_addFor2(p):
     'addFor2 :'
     # Pop fake bottom
-    fake_bottom = operatorStack.pop()
-    print("Fake_bottom", fake_bottom)
+    operatorStack.pop()
     # Get <= operator
-    operator = operatorStack.pop()
+    ltEqualOperator = operatorStack.pop()
     # Get Types and operands
     rightType = typeStack.pop()
     leftType = typeStack.pop()
@@ -1039,35 +1058,36 @@ def p_addFor2(p):
     if rightType == INT and leftType == INT:
         result = memory.getNextAddress(TEMPORAL_INT)
         quadruples.append(
-            Quadruple(operator, leftOperand, rightOperand, result))
+            Quadruple(ltEqualOperator, leftOperand, rightOperand, result))
         jumpStack.push(len(quadruples) - 1)
         quadrupleGotoF = Quadruple(GOTOF, result, None, None)
         quadruples.append(quadrupleGotoF)
         jumpStack.push(len(quadruples) - 1)
-        # if any operand were a temporal space return it to avail
     else:
         # Error for loops must be ints
         raise TypeMismatchError
 
 
+# Adds countVar+1 quadruple and assignment quadruple
+# Adds GOTO start quadruple and fills GOTOF quadruple with end position.
 def p_addFor3(p):
     'addFor3 :'
     # Pop fake bottom
-    fake_bottom = operatorStack.pop()
-    print("Fake bottom", fake_bottom)
+    operatorStack.pop()
     # Get sum operator
-    operator = operatorStack.pop()
+    sumOperator = operatorStack.pop()
     leftSide = operandStack.pop()
     leftType = typeStack.pop()
     rightSide = memory.getNextAddress(CONSTANT_INT, value='1', valType=INT)
     rightType = INT
-    resultType = semanticCube[(leftType, rightType, operator)]
-    print("Addfor3", leftSide, rightSide)
+    resultType = semanticCube[(leftType, rightType, sumOperator)]
     if leftType == INT:
         result = memory.getNextAddress(convert_type(resultType,
                                                     TEMPORAL_SCOPE))
-        quadruple = Quadruple(operator, leftSide, rightSide, result)
+        # temp = countVar + 1
+        quadruple = Quadruple(sumOperator, leftSide, rightSide, result)
         quadruples.append(quadruple)
+        # countVar = temp
         quadrupleAssign = Quadruple('=', result, None, leftSide)
         quadruples.append(quadrupleAssign)
 
@@ -1083,7 +1103,7 @@ def p_addFor3(p):
         raise TypeMismatchError
 
 
-# getConvertedOperant is not necessary now!
+# Add float constant to memory.
 def p_addFloat(p):
     'addFloat :'
     address = memory.getNextAddress(CONSTANT_FLOAT, value=p[-1], valType=FLOAT)
@@ -1091,6 +1111,7 @@ def p_addFloat(p):
     typeStack.push(FLOAT)
 
 
+# Add Int constant to memory
 def p_addInt(p):
     'addInt :'
     address = memory.getNextAddress(CONSTANT_INT, value=p[-1], valType=INT)
@@ -1098,6 +1119,7 @@ def p_addInt(p):
     typeStack.push(INT)
 
 
+# Add char constant to memory
 def p_addChar(p):
     'addChar :'
     address = memory.getNextAddress(CONSTANT_CHAR, value=p[-1], valType=CHAR)
@@ -1113,6 +1135,7 @@ def p_error(p):
     raise CustomSyntaxError(error)
 
 
+# Restart all global variables to manage multiple calls from front end.
 def initAll():
     global currentScope
     global quadruples
@@ -1150,25 +1173,32 @@ def initAll():
     memory.resetAll()
 
 
-# Constructor del parser
+# Parser constructor
 parser = yacc.yacc()
-# parsear archivo
+# Parse file
 app = Flask(__name__)
 CORS(app)
 
 
+# Debugging
 @app.route('/')
 def root():
     return "Hello World"
 
 
+# Compile request from front end.
 @app.route('/compile', methods=["POST"])
 def compile():
     content = request.get_json()
+    # JSON request format example:
+    # {
+    #   codigo: {Code text here...}
+    # }
     initAll()
     # Here we will pass to the vm
     # and return the result of the vm to the front
     try:
+        # Parse code then run vm with generated quadruples.
         parser.parse(content['codigo'])
         return vm.start(quadruples)
     except Exception as e:
@@ -1177,10 +1207,17 @@ def compile():
         return errors
 
 
+# User input request from front end.
 @app.route('/user-input', methods=["POST"])
 def userInput():
     content = request.get_json()
+    # JSON request example:
+    # {
+    #   input_value: 2,
+    #	current_quad: 18,
+    # }
     try:
+        # Uses previously generated quadruples (in compile request).
         return vm.start(quadruples,
                         currentQuad=content[CURRENT_QUAD],
                         inputValue=content[INPUT_VALUE])
