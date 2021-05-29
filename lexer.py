@@ -1,6 +1,6 @@
 import ply.lex as lex
 
-# Lista de nombres de tokens.
+# List of token names
 tokens = [
     'ID', 'SEMICOLON', 'COLON', 'COMA', 'LBRACE', 'RBRACE', 'LBRACKET',
     'RBRACKET', 'EQUAL', 'PLUS', 'MINUS', 'MULTIPLY', 'DIVIDE', 'LPAREN',
@@ -8,7 +8,7 @@ tokens = [
     'NE', 'EQEQ', 'LTEQ', 'GTEQ'
 ]
 
-# Lista de palabras reservadas.
+# Dict of reserved words
 reserved = {
     'program': 'PROGRAM',
     'var': 'VAR',
@@ -31,7 +31,7 @@ reserved = {
 }
 tokens += reserved.values()
 
-# Regexpr para tokens simples
+# Regexpr for simple tokens
 t_SEMICOLON = r';'
 t_COLON = r':'
 t_COMA = r','
@@ -58,7 +58,7 @@ t_LTEQ = r'<='
 t_GTEQ = r'>='
 
 
-# Regexpr para tokens que requieren más codigo
+# Regexpr for tokens that require code.
 def t_ID(token):
     r'[a-zA-Z][a-zA-Z0-9_]*'
     if token.value in reserved:
@@ -66,22 +66,23 @@ def t_ID(token):
     return token
 
 
-# Regla para tomar en cuenta cambios de linea
+# Rule to manage whitespace line jumps
 def t_newline(t):
     r'\n+'
     t.lexer.lineno += len(t.value)
 
 
-# Caracteres a ignorar
+# Ignore empty space
 t_ignore = ' \t'
+# Ignore %% to manage comments in code.
 t_ignore_COMMENT = r'%%.*'
 
 
-# Manejo de errores
+# Error handling
 def t_error(t):
     print("Illegal character '%s'" % t.value[0])
     t.lexer.skip(1)
 
 
-# Constructor del lexer
+# Lexer constructor
 lexer = lex.lex()
