@@ -11,7 +11,7 @@ const Compiler = () => {
 	const userInputRef = useRef();
 	const formRef = useRef();
 	const [isWaitingForInput, setIsWaitingForInput] = useState(false);
-	const [height, setHeight] = useState();
+	const [height, setHeight] = useState(window.innerHeight);
 	const [inputLabel, setInputLabel] = useState("");
 	const [currentQuad, setCurrentQuad] = useState(0);
 
