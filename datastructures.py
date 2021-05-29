@@ -2,9 +2,7 @@ from collections import deque
 from constants import *
 
 
-# Una pila LIFO con los metodos basicos
-# Usamos esta clase para limitar el uso de funciones de la
-# libreria deque a solo las necesarias para una pila
+# Stack implementation to delimit deque library functionality (LIFO)
 class Stack:
     def __init__(self):
         self.stack = deque()
@@ -31,7 +29,7 @@ class Stack:
     def empty(self):
         return len(self.stack) == 0
 
-
+# Queue implementation to delimit deque library functionality (FIFO)
 class Queue:
     def __init__(self):
         self.queue = deque()
@@ -46,7 +44,7 @@ class Queue:
 
     def size(self):
         return len(self.queue)
-
+    # Added this function to help us get the back of the queue
     def back(self):
         if len(self.queue) < 1:
             return None
@@ -58,15 +56,16 @@ class Queue:
     def empty(self):
         return len(self.queue) == 0
 
-
+# Initialize semantic cube dictionary
 semanticCube = {}
-
+# Initialize valid types list
 types = [ERROR, INT, FLOAT, CHAR, None]
-
+# Initialize valid operators list
 operator = [
     "+", "-", "*", "/", ">", "<", ">=", "<=", "==", "<>", "and", "or", "="
 ]
-
+# Semantic cube logic since its a cube we iterate with a triple nested loop
+# O(n^3)
 for i in types:  # Left operand
     for j in types:  # Right operand
         for k in operator:  # Operators
@@ -103,7 +102,8 @@ for i in types:  # Left operand
             else:
                 semanticCube[(i, j, k)] = ERROR
 
-
+# Quadruple Class to manage same structure for quadruples:
+# e.g of valid structure quadruple: operator, leftOperand, rightOperand and result
 class Quadruple():
     def __init__(self, operator, leftOperand, rightOperand, result):
         self.operator = operator

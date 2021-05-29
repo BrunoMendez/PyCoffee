@@ -1,6 +1,7 @@
 from constants import *
 from datastructures import Queue, Stack
-
+from errors import *
+# Initalize types dictionary with their starting addresses in memory
 types = {
     GLOBAL_INT: 1000,
     GLOBAL_FLOAT: 2000,
@@ -20,21 +21,24 @@ types = {
     TEMPORAL_LOCAL_CHAR: 16000
 }
 
-
+# LocalMemory Class to manage memory in functions
 class LocalMemory():
     def __init__(self):
         self.memory = {}
+        # Queue to manage parameters positions in memory regarding its type
         self.paramInts = Queue()
         self.paramFloats = Queue()
         self.paramChars = Queue()
+    # function to get the value of the address
     def getValue(self, address):
         return self.memory[address]
-
+    # function to set the value of the address
     def setValue(self, address, value):
         self.memory[address] = value
-
+    # Function to print the memory
     def printMem(self):
         print(self.memory)
+    # Function to add parameters in the correct index of memory
     def paramHelper(self, valueAddress):
         value = getValue(valueAddress)
         valueType = getType(valueAddress)
@@ -44,7 +48,7 @@ class LocalMemory():
             self.paramFloats.enqueue(value)
         elif valueType == CHAR:
             self.paramChars.enqueue(value)
-
+    # Function to assign parameters to memory based on their index in the queue and their type
     def assignParam(self):
         sizeInts = self.paramInts.size()
         for index in range(0, sizeInts):
@@ -55,24 +59,28 @@ class LocalMemory():
         sizeChars = self.paramChars.size()
         for index in range(0, sizeChars):
             self.memory[index + 6000] = self.paramChars.dequeue()
+# GlobalMemory Class to manage global memory
 class GlobalMemory():
     def __init__(self):
         self.memory = {}
-
+    # function to get the value of the address
     def getValue(self, address):
         return self.memory[address]
-
+     # function to set the value of the address
     def setValue(self, address, value):
         self.memory[address] = value
-
+     # Function to print the memory
     def printMem(self):
         print(self.memory)
 
-
+# Instantiate GlobalMemory
 global_memory = GlobalMemory()
+# Instantiate LocalMemoryStack
+# We use a stack to manage recursive calls
+# instance in top of stack will always be the current local memory
 local_memory_stack = Stack()
 
-
+# get the type of the addresses without its scope
 def getType(address):
     if (1000 <= address <= 1999 or 4000 <= address <= 4999
             or 7000 <= address <= 7999 or 10000 <= address <= 10999
@@ -90,45 +98,49 @@ def getType(address):
         return VOID
 
 
-
-def getNextAddress(mem, offset=1, value=None, valType=None):
-    current_address = types[mem]
-    # parse value
-    if valType == INT:
-        value = int(value)
-    elif valType == FLOAT:
-        value = float(value)
-
-    # if value store value
-
+# [Used in compile time]
+# Returns next available address for a given variable type range
+# If array offset will be array size
+def getNextAddress(typeRange, offset=1, value=None, valType=None):
+    # Stores current available address 
+    current_address = types[typeRange]
+    # May pass value and type to store constants from compilation
     if valType != None and value != None:
+        # parse value
+        if valType == INT:
+            value = int(value)
+        elif valType == FLOAT:
+            value = float(value)
         global_memory.setValue(current_address, value)
-    types[mem] = types[mem] + offset
-    if types[mem] % 1000 != 0:
+    # Updates next available address
+    types[typeRange] = types[typeRange] + offset
+    # Checks that memory addresses are not overflowed
+    if types[typeRange] % 1000 != 0:
         return current_address
     else:
-        raise MemoryError
+        # StackOverflow error
+        raise StackOverflow
 
-
+# Function to check if its a local address
 def isLocal(address):
     return (address >= 4000 and address < 7000) or (address >= 14000
                                                     and address < 17000)
 
-
+# Returns value from current local memory/global memory
 def getValue(address):
     if isLocal(address):
         return local_memory_stack.top().getValue(address)
     else:
         return global_memory.getValue(address)
 
-
+# Sets value into current local memory/global memory for a given address
 def setValue(address, value):
     if isLocal(address):
-        return local_memory_stack.top().setValue(address, value)
+        local_memory_stack.top().setValue(address, value)
     else:
-        return global_memory.setValue(address, value)
+        global_memory.setValue(address, value)
 
-
+# Resets Local Temporals variables
 def resetLocalTemporals():
     countInt = types[TEMPORAL_LOCAL_INT] - 14000
     countFloat = types[TEMPORAL_LOCAL_FLOAT] - 15000
@@ -138,7 +150,7 @@ def resetLocalTemporals():
     types[TEMPORAL_LOCAL_CHAR] = 16000
     return [countInt, countFloat, countChar]
 
-
+# Resets Local variables
 def resetLocals():
     countInt = types[LOCAL_INT] - 4000
     countFloat = types[LOCAL_FLOAT] - 5000
@@ -148,20 +160,7 @@ def resetLocals():
     types[LOCAL_CHAR] = 6000
     return [countInt, countFloat, countChar]
 
-
-def getVarCounts():
-    countInt = types[GLOBAL_INT] - 1000
-    countFloat = types[GLOBAL_FLOAT] - 2000
-    countChar = types[GLOBAL_CHAR] - 3000
-    countTempInt = types[TEMPORAL_INT] - 7000
-    countTempFloat = types[TEMPORAL_CHAR] - 8000
-    countTempChar = types[TEMPORAL_CHAR] - 9000
-    return [
-        countInt, countFloat, countChar, countTempInt, countTempFloat,
-        countTempChar
-    ]
-
-
+# Reset global and local memory 
 def resetAll():
     global types
     global global_memory
@@ -187,15 +186,3 @@ def resetAll():
     while (not local_memory_stack.empty()):
         local_memory_stack.pop()
 
-
-""" def getValue(address):
-    return global_memory[address]
-
-
-def setValue(address, value):
-    global_memory[address] = value
-
-
-def printMem():
-    print("Memory:", global_memory)
- """
