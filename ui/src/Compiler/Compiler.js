@@ -1,9 +1,9 @@
 // https://pycoffeecompiler.herokuapp.com/
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Form, Container, Row, Col, Button } from "react-bootstrap";
 import "./Compiler.css";
 /* import fetchAPI from '../helpers/request'; */
-let base_url = "http://localhost:5000/";
+let base_url = "https://pycoffeecompiler.herokuapp.com/";
 let API_TOKEN = "ELDA";
 const Compiler = () => {
 	const [input, setInput] = useState("");
@@ -11,6 +11,7 @@ const Compiler = () => {
 	const userInputRef = useRef();
 	const formRef = useRef();
 	const [isWaitingForInput, setIsWaitingForInput] = useState(false);
+	const [height, setHeight] = useState();
 	const [inputLabel, setInputLabel] = useState("");
 	const [currentQuad, setCurrentQuad] = useState(0);
 
@@ -91,6 +92,13 @@ const Compiler = () => {
 		fetchUrl(url, settings);
 		userInputRef.current.value = "";
 	};
+	useEffect(() => {
+		function handleResize() {
+			setHeight(window.innerHeight);
+		}
+
+		window.addEventListener("resize", handleResize);
+	});
 
 	return (
 		<Container id='formContainer'>
@@ -101,7 +109,12 @@ const Compiler = () => {
 							<Form.Label>Code</Form.Label>
 							<Form.Control
 								as='textarea'
-								rows={30}
+								style={{
+									height: "80%",
+									lineHeight: 1,
+									fontSize: "12px",
+								}}
+								rows={parseInt((height / 12) * 0.5)}
 								value={input}
 								onChange={(e) => setInput(e.target.value)}
 								disabled={isWaitingForInput}
@@ -113,7 +126,12 @@ const Compiler = () => {
 							<Form.Label>Output</Form.Label>
 							<Form.Control
 								as='textarea'
-								rows={30}
+								style={{
+									height: "80%",
+									lineHeight: 1,
+									fontSize: "12px",
+								}}
+								rows={parseInt((height / 12) * 0.5)}
 								value={result}
 								readOnly
 							/>
@@ -141,7 +159,7 @@ const Compiler = () => {
 							<Form.Label>User Input</Form.Label>
 							<Form.Control
 								as='textarea'
-								rows={2}
+								rows={1}
 								ref={userInputRef}
 								disabled={!isWaitingForInput}
 								onKeyPress={(e) => {
