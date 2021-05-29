@@ -131,13 +131,7 @@ def p_mainStart(p):
 def p_createGlobalTables(p):
     'createGlobalTables : '
     currentScope = GLOBAL_SCOPE
-    functionDirectory[currentScope] = {
-        TYPE: VOID,
-        FUNCTION_PARAM_COUNT: 0,
-        FUNCTION_VAR_COUNT: 0,
-        FUNCTION_QUAD_INDEX: 0,
-        FUNCTION_TEMP_COUNT: 0
-    }
+    functionDirectory[currentScope] = {TYPE: VOID, FUNCTION_QUAD_INDEX: 0}
     variableTable[currentScope] = {}
     quad = Quadruple(GOTO, MAIN, None, None)
     quadruples.append(quad)
@@ -328,6 +322,7 @@ def p_arrPos(p):
     '''arrPos : LBRACKET getArr1 exp getArr2 RBRACKET getArr5
                 | LBRACKET getArr1 exp getArr2 RBRACKET LBRACKET getArr3 exp getArr4 RBRACKET getArr5'''
 
+
 # Gets the id of an array and push a verify operation in an array [1st dimension]
 # Pushes a fake botton
 def p_getArr1(p):
@@ -337,9 +332,9 @@ def p_getArr1(p):
     if isinstance(arrId, dict):
         if IS_ARRAY in arrId.keys():
             if arrId[IS_ARRAY]:
-                operatorStack.push(VERIFY_ARR)
                 # Serves to check that the size matches the size of the declared array
                 # Of the first dimension
+                operatorStack.push(VERIFY_ARR)
                 operatorStack.push("+")
                 # Push a Fake bottom to the operatorStack
                 operatorStack.push("%")
@@ -350,19 +345,9 @@ def p_getArr1(p):
     else:
         raise TypeMismatchError
 
-# Gets the id of an array and push a verify operation in an array [2nd dimension]
-def p_getArr3(p):
-    'getArr3 :'
-    operatorStack.push(VERIFY_ARR)
-    # Serves to check that the size matches the size of the declared array
-    # Of the second dimension
-    operatorStack.push("+")
-    # Push a Fake bottom to the operatorStack
-    operatorStack.push("%")
 
-# Calculates addresses if its a dimension=1 or dimension=2
-# Gets the memory addresses of the indexes
-# Checks that the value passed is an Integer
+# Calculates address if its a 1D array
+# Calculates S1*Lim2 if its a 2D array
 def p_getArr2(p):
     'getArr2 :'
     # pop fake bottom
@@ -373,7 +358,8 @@ def p_getArr2(p):
     verifyOp = operatorStack.pop()
     expResult = operandStack.pop()
     expType = typeStack.pop()
-    arrId = operandStack.top()
+    arrId = operandStack.pop()
+    arrType = typeStack.pop()
     # Verifies that the number passed is an integer
     if expType == INT:
         quad = Quadruple(verifyOp, expResult, arrId[LIM], None)
@@ -395,23 +381,46 @@ def p_getArr2(p):
         quadruples.append(quad)
         operandStack.push(result)
         typeStack.push(INT)
+        operandStack.push(arrId)
+        typeStack.push(arrType)
     else:
         raise TypeMismatchError
 
-# Pop fake bottom and verifies that the value passed is not out of bounds
-# Append quadruples of the addreses of the array/matrix
+
+# Gets the id of an array and push a verify operation in an array [2nd dimension]
+def p_getArr3(p):
+    'getArr3 :'
+    arrId = operandStack.top()
+    print(operandStack)
+    print("Array ID", arrId)
+    # Verifies that its a 2D array
+    if arrId[DIM] == 2:
+        # Serves to check that the size matches the size of the declared array
+        # Of the second dimension
+        operatorStack.push(VERIFY_ARR)
+        operatorStack.push("+")
+        # Push a Fake bottom to the operatorStack
+        operatorStack.push("%")
+        print(operandStack)
+    else:
+        raise TypeMismatchError
+
+
+# Calculates final address of index ((S2 + S1*Lim2) + BaseAddress)
 def p_getArr4(p):
     'getArr4 :'
     # Pop fake bottom
     operatorStack.pop()
+    # Gets data from stacks
     sumOp = operatorStack.pop()
     verifyOp = operatorStack.pop()
     expResult = operandStack.pop()
     expType = typeStack.pop()
+    arrId = operandStack.pop()
+    arrType = typeStack.pop()
     prevResult = operandStack.pop()
     typeStack.pop()
     if expType == INT:
-        arrId = operandStack.top()
         baseAddress = memory.getNextAddress(CONSTANT_INT,
                                             value=arrId[ADDRESS],
                                             valType=INT)
@@ -429,21 +438,26 @@ def p_getArr4(p):
         quadruples.append(quad)
         operandStack.push(address_result)
         typeStack.push(INT)
+        operandStack.push(arrId)
+        typeStack.push(arrType)
     else:
         raise TypeMismatchError
 
-# Push a fake bottom in the addres to delimit that from that point until pop of fake bottom
-# is part of the array/matrix
+
+# Adds address result to operandStack as pointer
 def p_getArr5(p):
     'getArr5 :'
-    address = operandStack.pop()
-    addressType = typeStack.pop()
     arrId = operandStack.pop()
     arrType = typeStack.pop()
-    # Cambiar a pointer
+    address = operandStack.pop()
+    addressType = typeStack.pop()
+    print(address, addressType, arrId, arrType)
+    print(operatorStack, typeStack)
+    # Adds identifier to know that it's a pointer.
     address = "(" + str(address)
     operandStack.push(address)
     typeStack.push(arrType)
+
 
 # Sets global currentType variable to the one passed
 def p_type(p):
@@ -453,6 +467,7 @@ def p_type(p):
     global currentType
     currentType = p[1]
 
+
 # Sets the type of the awaited return .. in this case its void therefore -- no return is expected--
 def p_returnType(p):
     '''returnType : type
@@ -461,33 +476,32 @@ def p_returnType(p):
         global currentType
         currentType = p[1]
 
-# Gets the currentScope of the program, when finished running a function
-# Resets Memory's LocalTemporals and Locals
-# Deletes variableTable of the currentScope == function
-# sets the currentScope of the program to Global
-# if a non void function is declared checks if return is present else push EndFunc quadruple
+
+# Updates compiler state and memory after function.
 def p_function(p):
-    'function : returnType FUNCTION ID addFunction1 LPAREN params RPAREN addFunction3 vars addFunction4 block'
+    'function : returnType FUNCTION ID addFunction1 LPAREN params RPAREN vars addFunction3 block'
     global currentScope
-    functionDirectory[currentScope][
-        FUNCTION_TEMP_COUNT] = memory.resetLocalTemporals()
-    functionDirectory[currentScope][FUNCTION_VAR_COUNT] = memory.resetLocals()
+    # Resets Memory's LocalTemporals and Locals
+    memory.resetLocalTemporals()
+    memory.resetLocals()
+
+    # Deletes functions variable table.
     del variableTable[currentScope]
+
+    # Reset scope to global.
     currentScope = GLOBAL_SCOPE
+
+    # Verifies that non void functions have return statements.
     if (function_type != VOID and (not hasReturn)):
         raise NonVoidFuncReturnMissing
     quadruples.append(Quadruple(END_FUNC, None, None, None))
 
-# Sets the index of the quadruples length (at the moment) for the functionDirectory
-def p_addFunction4(p):
-    'addFunction4 :'
-    functionDirectory[currentScope][FUNCTION_QUAD_INDEX] = len(quadruples)
 
-# Sets the parameters count for the functionDirectory
+# Sets functions start position.
 def p_addFunction3(p):
     'addFunction3 :'
-    functionDirectory[currentScope][FUNCTION_PARAM_COUNT] = len(
-        paramTable[currentScope])
+    functionDirectory[currentScope][FUNCTION_QUAD_INDEX] = len(quadruples)
+
 
 # Initialize dictionaries, booleans. Sanity checks and delimits the function’s information
 def p_addFunction1(p):
@@ -500,13 +514,13 @@ def p_addFunction1(p):
     hasReturn = False
     # gets the currentScope of the program
     currentScope = p[-1]
-     # Initialize the paramTable of the currentScope to an empty dictionary
+    # Initialize the paramTable of the currentScope to an empty dictionary
     paramTable[currentScope] = {}
     # Initialize the functionDirectory of the currentScope to an empty dictionary
     functionDirectory[currentScope] = {}
     # Sets the Type of the functionDirectory of the currentScope
     functionDirectory[currentScope][TYPE] = currentType
-    # Sets the memory address of the functionDirectory of the currentScope
+    # Sets the functions address in the global variable table (for recursion).
     functionDirectory[currentScope][ADDRESS] = memory.getNextAddress(
         convert_type(currentType, GLOBAL_SCOPE))
     # Sets the variableTable of the currentScope to an empty dictionary
@@ -517,14 +531,11 @@ def p_addFunction1(p):
         # Check if the variable is already declared in the global scope
         if (function_id in variableTable[GLOBAL_SCOPE]):
             raise VarAlreadyInTable
-        # Sets the function in the variableTable of the global scope and delimits is not an array
+        # Adds the function to the global variable table (for recursion).
         variableTable[GLOBAL_SCOPE][function_id] = {
-            TYPE:
-            function_type,
-            ADDRESS:
-            memory.getNextAddress(convert_type(function_type, GLOBAL_SCOPE)),
-            IS_ARRAY:
-            False
+            TYPE: function_type,
+            ADDRESS: functionDirectory[currentScope][ADDRESS],
+            IS_ARRAY: False
         }
 
 
@@ -570,6 +581,7 @@ def p_writePrime(p):
     '''writePrime : addFakeBottom expression popOperator printExpression writePrimePrime
                     | CST_STRING printString writePrimePrime'''
 
+
 # Helps to print expressions
 # e.g. print(x);
 def p_printExpression(p):
@@ -578,6 +590,7 @@ def p_printExpression(p):
     quadruple = Quadruple(PRINT_EXP, None, None, operandStack.pop())
     quadruples.append(quadruple)
 
+
 # Helps to print signs
 # e.g. print("Hello World");
 def p_printString(p):
@@ -585,10 +598,12 @@ def p_printString(p):
     quadruple = Quadruple(PRINT_STR, None, None, p[-1])
     quadruples.append(quadruple)
 
+
 # Pop operator of the operatorStack
 def p_popOperator(p):
     'popOperator :'
     operatorStack.pop()
+
 
 # Add fake bottom to the operatorStack
 def p_addFakeBottom(p):
@@ -607,6 +622,7 @@ def p_callVoidF(p):
 
 def p_callFunction(p):
     '''callFunction : LPAREN callFunction1 expressions RPAREN callFunction3'''
+
 
 # Checks that the variable is a function, reset the boolean and push a Fake bottom
 # Sets the paramCounter to 0 --> This helps for functions without parameters
@@ -627,8 +643,9 @@ def p_callFunction1(p):
     else:
         raise FunctionNotDeclared
 
-# Counts the parameters of the function and set the Parameter quadruple with its argument and paramCounter
-# Checks that the parameter number matches the parameters passed and also that it matches its type
+
+# Updates paramCounter and adds PARAMETER quadruple with param value.
+# Checks that paramCounter is not bigger than the number of params.
 def p_callFunction2(p):
     'callFunction2 :'
     global paramCounter
@@ -636,10 +653,9 @@ def p_callFunction2(p):
     argument = operandStack.pop()
     argumentType = typeStack.pop()
     function_id = operandStack.top()
-    if paramCounter == len(paramTable[function_id]):
+    if paramCounter <= len(paramTable[function_id]):
         keys_list = list(paramTable[function_id])
         key = keys_list[paramCounter - 1]
-        print(paramTable)
         if argumentType == paramTable[function_id][key][TYPE]:
             quad = Quadruple(PARAMETER, argument, None, paramCounter - 1)
             quadruples.append(quad)
@@ -649,13 +665,15 @@ def p_callFunction2(p):
         raise InvalidParamNum
 
 
+# Checks that param count is correct.
+# Generates GOSUB quadruple
+# If non void function generates assignment quadruple and pushes result to stack.
 def p_callFunction3(p):
     'callFunction3 :'
     global paramCounter
     function_id = operandStack.pop()
     operatorStack.pop()
     idType = typeStack.pop()
-    print(paramCounter)
     if paramCounter == len(paramTable[function_id]):
         result = memory.getNextAddress(convert_type(idType, TEMPORAL_SCOPE))
         quad = Quadruple(GOSUB, functionDirectory[function_id][ADDRESS], None,

@@ -1,0 +1,16 @@
+program functionCalls;
+var i[5][5]: int;
+
+void function pelos(i: int) {
+    print(i);
+}
+
+int function pelambres() {
+    return (1);
+}
+
+main() {
+    i[pelambres()][0] = pelambres();
+    print(i[1][0]);
+    pelos(pelambres());
+}
