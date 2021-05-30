@@ -146,12 +146,12 @@ def isLocal(address):
 
 # Returns value from current local memory/global memory
 def getValue(address):
+    # If pointer then get real address first
+    if getType(address) == POINTER:
+        address = global_memory.getValue(address)
     if isLocal(address):
         return local_memory_stack.top().getValue(address)
     else:
-        # If pointer then get real address first
-        if getType(address) == POINTER:
-            address = global_memory.getValue(address)
         return global_memory.getValue(address)
 
 
