@@ -32,15 +32,6 @@ def start(quadruples, currentQuad=0, inputValue=None):
         leftOperand = quad.leftOperand
         rightOperand = quad.rightOperand
         quad_result = quad.result
-        # Checks if pointer and gets address
-        if isinstance(leftOperand, str) and "(" in leftOperand:
-            leftOperand = memory.getValue(int(leftOperand[1:]))
-        # Checks if pointer and gets address
-        if isinstance(rightOperand, str) and "(" in rightOperand:
-            rightOperand = memory.getValue(int(rightOperand[1:]))
-        # Checks if pointer and gets address
-        if isinstance(quad_result, str) and "(" in quad_result:
-            quad_result = memory.getValue(int(quad_result[1:]))
         if operator == "+":
             # Get value from addresses and perform sum
             result = memory.getValue(leftOperand) + memory.getValue(
@@ -62,6 +53,9 @@ def start(quadruples, currentQuad=0, inputValue=None):
                 rightOperand)
             memory.setValue(quad_result, result)
         elif operator == '=':
+            # If pointer then get real value first
+            if memory.getType(quad_result) == POINTER:
+                quad_result = memory.global_memory.getValue(quad_result)
             # Get value from addresses and perform assignment
             memory.setValue(quad_result, memory.getValue(leftOperand))
         elif operator == '<':
@@ -120,6 +114,7 @@ def start(quadruples, currentQuad=0, inputValue=None):
         elif operator == PRINT_EXP:
             # Get value from addresses and perform print expression operation
             output[outputCount] = memory.getValue(quad_result)
+            print(quad_result, output[outputCount])
             outputCount += 1
         elif operator == PRINT_STR:
             # Get value from addresses and perform print sign operation

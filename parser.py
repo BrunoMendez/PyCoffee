@@ -368,15 +368,17 @@ def p_getArr2(p):
         if arrId[DIM] == 2:
             sumOp = '*'
             operand = LIM2
-        # If it is a 1-dimension array it calculates AddressB+S1
+            result = memory.getNextAddress(convert_type(INT, TEMPORAL_SCOPE))
+        # If it is a 1-dimension array it calculates AddressB+S1 and
+        # stores result in pointer
         else:
             operand = ADDRESS
+            result = memory.getNextAddress(POINTER)
         # get the memory address of the array id
         assignResult = memory.getNextAddress(CONSTANT_INT,
                                              value=arrId[operand],
                                              valType=INT)
         # get the memory address of the indexes
-        result = memory.getNextAddress(convert_type(INT, TEMPORAL_SCOPE))
         quad = Quadruple(sumOp, expResult, assignResult, result)
         quadruples.append(quad)
         operandStack.push(result)
@@ -428,9 +430,9 @@ def p_getArr4(p):
         result = memory.getNextAddress(convert_type(INT, TEMPORAL_SCOPE))
         quad = Quadruple(sumOp, expResult, prevResult, result)
         quadruples.append(quad)
-        address_result = memory.getNextAddress(
-            convert_type(INT, TEMPORAL_SCOPE))
         # (S2 + S1*Lim2) + baseAddress
+        # stores result in pointer
+        address_result = memory.getNextAddress(POINTER)
         quad = Quadruple(sumOp, result, baseAddress, address_result)
         quadruples.append(quad)
         operandStack.push(address_result)
@@ -448,8 +450,6 @@ def p_getArr5(p):
     arrType = typeStack.pop()
     address = operandStack.pop()
     typeStack.pop()
-    # Adds identifier to know that it's a pointer.
-    address = "(" + str(address)
     operandStack.push(address)
     typeStack.push(arrType)
 
