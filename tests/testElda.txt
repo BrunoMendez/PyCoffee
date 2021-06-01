@@ -1,6 +1,11 @@
 program recursiveFactorial;
 var factorial, ans: int;
-
+int function patito(y : int){
+return(y * 3);
+}
+int function pelos(x : int){
+  return(patito(x*2));
+}
 int function fact(m:int)
 var i: int;
 {
@@ -15,4 +20,6 @@ main()
 {
   ans = 6;
   print(fact(ans));
+  print(pelos(2));
+  print(fact(pelos(2)));
 }

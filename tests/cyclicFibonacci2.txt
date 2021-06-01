@@ -1,11 +1,14 @@
 program cyclicFibonacci;
-var num, i, num1, num2 :  int;
+var num, i, num1, num2, n :  int;
 
 main() 
 {
   num = 0;
   num1 = 0;
   num2 = 1;
+  print("First n fibonacci numbers");
+  print("insert n");
+  input(n)
   for(i=2 : 13) 
   {
        print(num1);

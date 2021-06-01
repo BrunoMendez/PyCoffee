@@ -54,7 +54,7 @@ checkFunction = False
 hasReturn = False
 
 # Counts the parameters of the function to call
-paramCounter = 0
+paramCounterStack = Stack()
 
 
 # This function returns a string that tells us in which range of addresses in
@@ -633,8 +633,7 @@ def p_callFunction1(p):
                          None)
         # Appends it to the quadruples list
         quadruples.append(quad)
-        global paramCounter
-        paramCounter = 0
+        paramCounterStack.push(0)
     else:
         raise FunctionNotDeclared
 
@@ -643,14 +642,14 @@ def p_callFunction1(p):
 # Checks that paramCounter is not bigger than the number of params.
 def p_callFunction2(p):
     'callFunction2 :'
-    global paramCounter
-    paramCounter += 1
+    paramCounterStack.push(paramCounterStack.pop() + 1)
+    print(operatorStack.pop())
     argument = operandStack.pop()
     argumentType = typeStack.pop()
     function_id = operandStack.top()
-    if paramCounter <= len(paramTable[function_id]):
+    if paramCounterStack.top() <= len(paramTable[function_id]):
         keys_list = list(paramTable[function_id])
-        key = keys_list[paramCounter - 1]
+        key = keys_list[paramCounterStack.top() - 1]
         if argumentType == paramTable[function_id][key][TYPE]:
             quad = Quadruple(PARAMETER, argument, None, paramCounter - 1)
             quadruples.append(quad)
@@ -665,11 +664,10 @@ def p_callFunction2(p):
 # If non void function generates assignment quadruple and pushes result to stack.
 def p_callFunction3(p):
     'callFunction3 :'
-    global paramCounter
     function_id = operandStack.pop()
     operatorStack.pop()
     idType = typeStack.pop()
-    if paramCounter == len(paramTable[function_id]):
+    if paramCounterStack.pop() == len(paramTable[function_id]):
         quad = Quadruple(GOSUB, functionDirectory[function_id][ADDRESS], None,
                          functionDirectory[function_id][FUNCTION_QUAD_INDEX])
         quadruples.append(quad)
@@ -687,7 +685,7 @@ def p_callFunction3(p):
 
 
 def p_expressions(p):
-    '''expressions : expression callFunction2 expressionsPrime 
+    '''expressions : expression addFakeBottom callFunction2 expressionsPrime 
                 |'''
 
 
@@ -807,11 +805,6 @@ def p_callableCst(p):
     '''callableCst : ID addIdToStack checkIfNotFunction
                 |  ID addIdToStack callFunction
                 | ID addIdToStack arrPos'''
-
-
-def p_popOperator(p):
-    'popOperator :'
-    operatorStack.pop()
 
 
 def p_addOperator(p):
